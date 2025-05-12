@@ -219,7 +219,7 @@ function ProfilePageClient({
             </TabsTrigger>
           </TabsList>
 
-          <TabsContent value="posts" className="mt-6 ml-8 mr-8">
+          <TabsContent value="posts" className="mt-6">
             <div className="space-y-6">
               {posts.length > 0 ? (
                 posts.map((post) => (
