@@ -8,12 +8,12 @@ import React, {
   FormEvent,
 } from "react";
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
+import { Separator } from "@/components/ui/separator";
 import { Avatar, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { ImageIcon, SendIcon, Loader2Icon, SmileIcon } from "lucide-react";
+import { SendIcon, Loader2Icon, SmileIcon } from "lucide-react";
 import ChatHeader from "./ChatHeader";
-import ImageUpload from "./ImageUpload";
 import { useUser } from "@clerk/nextjs";
 import Picker from "@emoji-mart/react";
 import data from "@emoji-mart/data";
@@ -21,6 +21,7 @@ import { sendMessage, getMessagesWithUser } from "@/actions/message.action";
 import { pusherClient } from "@/lib/pusher";
 import toast from "react-hot-toast";
 import { formatDistanceToNow } from "date-fns";
+import { motion } from "framer-motion";
 
 interface MsgBoxProps {
   receiverId: string;
@@ -36,16 +37,14 @@ const MsgBox: React.FC<MsgBoxProps> = ({
   setShowChatUsersMobile,
 }) => {
   const { user } = useUser();
-
   const [messages, setMessages] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState("");
-  const [imageUrl, setImageUrl] = useState("");
-  const [showImageUpload, setShowImageUpload] = useState(false);
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [isSending, setIsSending] = useState(false);
 
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
+  const bottomRef = useRef<HTMLDivElement>(null);
 
   const fetchMessages = async () => {
     setLoading(true);
@@ -64,6 +63,10 @@ const MsgBox: React.FC<MsgBoxProps> = ({
   useEffect(() => {
     fetchMessages();
   }, [receiverId]);
+
+  useEffect(() => {
+    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages]);
 
   useEffect(() => {
     const channel = pusherClient.subscribe(`user-${currentUserId}`);
@@ -93,12 +96,11 @@ const MsgBox: React.FC<MsgBoxProps> = ({
 
   const handleSend = async (e: FormEvent) => {
     e.preventDefault();
-    if (!receiverId || (!message.trim() && !imageUrl)) return;
+    if (!receiverId || !message.trim()) return;
 
     setIsSending(true);
     try {
-      const fullMessage = message + (imageUrl ? `\n[Image](${imageUrl})` : "");
-      const res = await sendMessage(receiverId, fullMessage);
+      const res = await sendMessage(receiverId, message);
 
       if (!res.success) return toast.error(res.error || "Send failed");
 
@@ -106,7 +108,7 @@ const MsgBox: React.FC<MsgBoxProps> = ({
         ...prev,
         {
           id: Math.random().toString(36).substr(2, 9),
-          content: fullMessage,
+          content: message,
           sender: { id: currentUserId },
           receiverId,
           createdAt: new Date().toISOString(),
@@ -114,9 +116,7 @@ const MsgBox: React.FC<MsgBoxProps> = ({
       ]);
 
       setMessage("");
-      setImageUrl("");
       setShowEmojiPicker(false);
-      setShowImageUpload(false);
     } catch {
       toast.error("Message send failed");
     } finally {
@@ -125,138 +125,117 @@ const MsgBox: React.FC<MsgBoxProps> = ({
   };
 
   return (
-    <Card className="flex flex-col h-screen max-h-screen rounded-xl shadow-lg border overflow-hidden">
-      {/* Header */}
+    <Card className="w-full h-full max-h-screen overflow-hidden border shadow-xl rounded-2xl flex flex-col">
+      {/* Chat Header */}
       <ChatHeader
         receiverId={receiverId}
         setChatUser={setChatUser}
         setShowChatUsersMobile={setShowChatUsersMobile}
       />
+      <Separator />
 
       {/* Messages */}
-      <CardContent className="flex-grow p-4 space-y-3 overflow-y-auto">
+      <CardContent className="flex-1 overflow-y-auto p-4 space-y-4">
         {loading ? (
-          <p className="text-center text-gray-500">Loading messages...</p>
+          <p className="text-sm text-muted-foreground">Loading messages...</p>
         ) : messages.length === 0 ? (
-          <p className="text-center text-gray-500">
+          <p className="text-sm text-muted-foreground">
             No messages yet. Start the conversation!
           </p>
         ) : (
           messages.map((msg) => {
             const isSender = msg.sender?.id === currentUserId;
-            const isImage = msg.content.includes("[Image](");
-            const content = isImage
-              ? msg.content.match(/\[Image\]\((.*?)\)/)?.[1]
-              : msg.content;
 
             return (
-              <div
+              <motion.div
                 key={msg.id}
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
                 className={`flex ${isSender ? "justify-end" : "justify-start"}`}
               >
                 <div
-                  className={`max-w-[70%] px-4 py-2 rounded-lg whitespace-pre-wrap break-words text-sm shadow ${
+                  className={`max-w-full sm:max-w-sm px-4 py-2 rounded-2xl border shadow-sm text-sm leading-relaxed ${
                     isSender
-                      ? "bg-blue-600 text-white"
-                      : "bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
+                      ? "bg-blue-500 text-white"
+                      : "border-muted dark:border-gray-700"
                   }`}
                 >
-                  {isImage ? (
-                    <img
-                      src={content}
-                      alt="Sent image"
-                      className="rounded-md max-w-full max-h-60 object-contain"
-                    />
-                  ) : (
-                    <p>{content}</p>
-                  )}
-                  <div className="text-xs text-right mt-1 opacity-60">
+                  <p className="whitespace-pre-line">{msg.content}</p>
+                  <span className="block text-[10px] text-right mt-1 opacity-60">
                     {formatDistanceToNow(new Date(msg.createdAt), {
                       addSuffix: true,
                     })}
-                  </div>
+                  </span>
                 </div>
-              </div>
+              </motion.div>
             );
           })
         )}
+        <div ref={bottomRef} />
       </CardContent>
 
-      {/* Input */}
-      <CardFooter className="flex flex-col gap-2 p-4 border-t">
-        {showImageUpload && (
-          <div className="mb-2">
-            <ImageUpload
-              endpoint="chatImage"
-              value={imageUrl}
-              onChange={(url) => {
-                setImageUrl(url);
-                if (!url) setShowImageUpload(false);
-              }}
+      {/* Chat Input */}
+      <CardFooter className="border-t p-4 sm:px-6 bg-background">
+        <form onSubmit={handleSend} className="w-full flex items-center gap-3">
+          {/* Avatar */}
+          <Avatar className="w-10 h-10 border shadow-sm shrink-0">
+            <AvatarImage
+              src={user?.imageUrl || "/avatar.png"}
+              alt="User avatar"
             />
-          </div>
-        )}
-
-        <form onSubmit={handleSend} className="flex items-end gap-2">
-          <Avatar className="w-10 h-10 shrink-0">
-            <AvatarImage src={user?.imageUrl || "/avatar.png"} alt="User" />
           </Avatar>
 
-          <Textarea
-            ref={textareaRef}
-            value={message}
-            onChange={(e) => setMessage(e.target.value)}
-            placeholder="Type your message..."
-            disabled={isSending}
-            rows={1}
-            className="flex-grow resize-none text-sm min-h-[40px]"
-            aria-label="Message input"
-          />
+          {/* Message + Emoji Button */}
+          <div className="relative flex-1 flex items-center gap-2">
+            <Textarea
+              ref={textareaRef}
+              value={message}
+              onChange={(e) => setMessage(e.target.value)}
+              placeholder="Type a message..."
+              disabled={isSending}
+              className="w-full resize-none text-sm rounded-xl border px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 shadow-sm"
+              rows={1}
+              aria-label="Message input"
+            />
 
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            onClick={() => setShowImageUpload((prev) => !prev)}
-            disabled={isSending}
-            aria-label="Upload image"
-          >
-            <ImageIcon className="w-5 h-5" />
-          </Button>
+            {/* Emoji Picker */}
+            {showEmojiPicker && (
+              <div className="absolute bottom-full left-0 mb-2 z-50">
+                <Picker data={data} onEmojiSelect={appendEmoji} theme="light" />
+              </div>
+            )}
 
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            onClick={() => setShowEmojiPicker((prev) => !prev)}
-            disabled={isSending}
-            aria-label="Toggle emoji picker"
-          >
-            <SmileIcon className="w-5 h-5" />
-          </Button>
+            {/* Emoji Button */}
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              onClick={() => setShowEmojiPicker((prev) => !prev)}
+              disabled={isSending}
+              className="text-muted-foreground hover:text-blue-500 transition"
+            >
+              <SmileIcon className="w-5 h-5" />
+            </Button>
+          </div>
 
+          {/* Send Button */}
           <Button
             type="submit"
-            disabled={(!message.trim() && !imageUrl) || isSending}
+            className="h-10 px-4 rounded-xl bg-blue-600 text-white hover:bg-blue-700 transition"
+            disabled={!message.trim() || isSending}
             aria-label="Send message"
-            className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg"
           >
             {isSending ? (
-              <Loader2Icon className="w-5 h-5 animate-spin" />
+              <Loader2Icon className="w-4 h-4 animate-spin" />
             ) : (
-              <SendIcon className="w-5 h-5" />
+              <SendIcon className="w-4 h-4" />
             )}
           </Button>
         </form>
-
-        {showEmojiPicker && (
-          <div className="mt-2 max-w-xs">
-            <Picker data={data} onEmojiSelect={appendEmoji} theme="light" />
-          </div>
-        )}
       </CardFooter>
     </Card>
   );
+  
 };
 
 export default MsgBox;
