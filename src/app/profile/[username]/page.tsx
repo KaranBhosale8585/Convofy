@@ -1,9 +1,7 @@
-// No "use client" here
 import {
   getProfileByUsername,
   getUserLikedPosts,
   getUserPosts,
-  updateProfile,
   isFollowing,
 } from "@/actions/profile.action";
 import ProfilePageClient from "./ProfilePageClient";

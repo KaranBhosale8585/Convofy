@@ -1,58 +1,68 @@
 "use client";
+
 import {
   getNotifications,
   markNotificationsAsRead,
 } from "@/actions/notification.action";
+import { getDbUserId } from "@/actions/user.action";
 import { NotificationsSkeleton } from "@/components/NotificationSkeleton";
 import { Avatar, AvatarImage } from "@/components/ui/avatar";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { pusherClient } from "@/lib/pusher";
 import { formatDistanceToNow } from "date-fns";
 import { HeartIcon, MessageCircleIcon, UserPlusIcon } from "lucide-react";
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import toast from "react-hot-toast";
 
 type Notifications = Awaited<ReturnType<typeof getNotifications>>;
-type Notification = Notifications[number];
+type Notification = Notifications extends Array<infer T> ? T : never;
 
 const getNotificationIcon = (type: string) => {
   switch (type) {
     case "LIKE":
-      return <HeartIcon className="size-4 text-red-500" />;
+      return <HeartIcon className="size-4 text-red-500" aria-label="Like" />;
     case "COMMENT":
-      return <MessageCircleIcon className="size-4 text-blue-500" />;
+      return (
+        <MessageCircleIcon
+          className="size-4 text-blue-500"
+          aria-label="Comment"
+        />
+      );
     case "FOLLOW":
-      return <UserPlusIcon className="size-4 text-green-500" />;
+      return (
+        <UserPlusIcon className="size-4 text-green-500" aria-label="Follow" />
+      );
     default:
       return null;
   }
 };
 
-const NotificationsPage = () => {
+function NotificationsPage() {
   const [notifications, setNotifications] = useState<Notification[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(true);
 
+  // Fetch notifications
   useEffect(() => {
     const fetchNotifications = async () => {
+      setIsLoading(true);
       try {
         const data = await getNotifications();
         setNotifications(data);
+
         const unreadIds = data.filter((n) => !n.read).map((n) => n.id);
-        if (unreadIds.length > 0) {
-          await markNotificationsAsRead(unreadIds).then(() => {
-            toast.success(`You have ${unreadIds.length} unread notifications`);
-          });
-        }
+        if (unreadIds.length > 0) await markNotificationsAsRead(unreadIds);
       } catch (error) {
         toast.error("Failed to fetch notifications");
       } finally {
-        setLoading(false);
+        setIsLoading(false);
       }
     };
+
     fetchNotifications();
   }, []);
 
-  if (loading) return <NotificationsSkeleton />;
+  if (isLoading) return <NotificationsSkeleton />;
 
   return (
     <div className="space-y-4">
@@ -81,7 +91,8 @@ const NotificationsPage = () => {
                 >
                   <Avatar className="mt-1">
                     <AvatarImage
-                      src={notification.creator.image ?? "/avatar.png"}
+                      src={notification.creator?.image ?? "/avatar.png"}
+                      alt={notification.creator?.name ?? "User avatar"}
                     />
                   </Avatar>
                   <div className="flex-1 space-y-1">
@@ -89,8 +100,8 @@ const NotificationsPage = () => {
                       {getNotificationIcon(notification.type)}
                       <span>
                         <span className="font-medium">
-                          {notification.creator.name ??
-                            notification.creator.username}
+                          {notification.creator?.name ??
+                            notification.creator?.username}
                         </span>{" "}
                         {notification.type === "FOLLOW"
                           ? "started following you"
@@ -114,7 +125,6 @@ const NotificationsPage = () => {
                               />
                             )}
                           </div>
-
                           {notification.type === "COMMENT" &&
                             notification.comment && (
                               <div className="text-sm p-2 bg-accent/50 rounded-md">
@@ -124,11 +134,13 @@ const NotificationsPage = () => {
                         </div>
                       )}
 
-                    <p className="text-sm text-muted-foreground pl-6">
-                      {formatDistanceToNow(new Date(notification.createdAt), {
-                        addSuffix: true,
-                      })}
-                    </p>
+                    {notification.createdAt && (
+                      <p className="text-sm text-muted-foreground pl-6">
+                        {formatDistanceToNow(new Date(notification.createdAt), {
+                          addSuffix: true,
+                        })}
+                      </p>
+                    )}
                   </div>
                 </div>
               ))
@@ -138,6 +150,6 @@ const NotificationsPage = () => {
       </Card>
     </div>
   );
-};
+}
 
 export default NotificationsPage;

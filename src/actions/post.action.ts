@@ -3,6 +3,7 @@
 import prisma from "@/lib/prisma";
 import { getDbUserId } from "./user.action";
 import { revalidatePath } from "next/cache";
+import { pusherServer } from "@/lib/pusher";
 
 export async function createPost(content: string, image: string) {
   try {
@@ -18,10 +19,19 @@ export async function createPost(content: string, image: string) {
       },
     });
 
+    await pusherServer.trigger("notifications", "new-notification", {
+      post: {
+        id: post.id,
+        content: post.content,
+        image: post.image,
+        createdAt: post.createdAt,
+        authorId: post.authorId,
+      },
+    });
     revalidatePath("/");
     return { success: true, post };
   } catch (error) {
-    console.log("Failed to create post:", error);
+    console.error("Failed to create post:", error);
     return { success: false, error: "Failed to create post" };
   }
 }
@@ -52,12 +62,10 @@ export async function getPosts() {
               },
             },
           },
-
           orderBy: {
             createdAt: "asc",
           },
         },
-
         likes: {
           select: {
             userId: true,
@@ -71,6 +79,7 @@ export async function getPosts() {
         },
       },
     });
+
     return posts;
   } catch (error) {
     console.log("Error in getPosts", error);
@@ -134,6 +143,12 @@ export async function toggleLike(postId: string) {
       ]);
     }
 
+    await pusherServer.trigger("notifications", "new-notification", {
+      type: existingLike ? "UNLIKE" : "LIKE",
+      postId,
+      userId,
+    });
+
     revalidatePath("/");
     return { success: true };
   } catch (error) {
@@ -181,6 +196,12 @@ export async function createComment(postId: string, content: string) {
       }
 
       return [newComment];
+    });
+
+    await pusherServer.trigger("notifications", "new-notification", {
+      type: "COMMENT",
+      postId,
+      userId,
     });
 
     revalidatePath(`/`);

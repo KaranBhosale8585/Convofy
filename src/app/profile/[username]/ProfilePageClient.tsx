@@ -1,6 +1,10 @@
 "use client";
 
-import { getProfileByUsername, getUserPosts, updateProfile } from "@/actions/profile.action";
+import {
+  getProfileByUsername,
+  getUserPosts,
+  updateProfile,
+} from "@/actions/profile.action";
 import { toggleFollow } from "@/actions/user.action";
 import PostCard from "@/components/PostCard";
 import { Avatar, AvatarImage } from "@/components/ui/avatar";
@@ -41,13 +45,11 @@ interface ProfilePageClientProps {
   isFollowing: boolean;
 }
 
-
 function ProfilePageClient({
   isFollowing: initialIsFollowing,
   likedPosts,
   posts,
   user,
-  
 }: ProfilePageClientProps) {
   const { user: currentUser } = useUser();
   const [showEditDialog, setShowEditDialog] = useState(false);
@@ -222,7 +224,7 @@ function ProfilePageClient({
           <TabsContent value="posts" className="mt-6">
             <div className="space-y-6">
               {posts.length > 0 ? (
-                posts.map((post) => (
+                posts.map((post: any) => (
                   <PostCard key={post.id} post={post} dbUserId={user.id} />
                 ))
               ) : (
@@ -236,7 +238,7 @@ function ProfilePageClient({
           <TabsContent value="likes" className="mt-6">
             <div className="space-y-6">
               {likedPosts.length > 0 ? (
-                likedPosts.map((post) => (
+                likedPosts.map((post: any) => (
                   <PostCard key={post.id} post={post} dbUserId={user.id} />
                 ))
               ) : (

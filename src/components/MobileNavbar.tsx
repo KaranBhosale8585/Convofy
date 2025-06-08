@@ -5,6 +5,7 @@ import {
   HomeIcon,
   LogOutIcon,
   MenuIcon,
+  MessagesSquare,
   MoonIcon,
   SunIcon,
   UserIcon,
@@ -64,6 +65,16 @@ function MobileNavbar() {
 
             {isSignedIn ? (
               <>
+                <Button
+                  variant="ghost"
+                  className="flex items-center gap-3 justify-start"
+                  asChild
+                >
+                  <Link href="/messages">
+                    <MessagesSquare className="w-4 h-4" />
+                    Chat
+                  </Link>
+                </Button>
                 <Button
                   variant="ghost"
                   className="flex items-center gap-3 justify-start"

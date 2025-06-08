@@ -62,6 +62,82 @@ export async function getDbUserId() {
   return user.id;
 }
 
+export async function getUserById(userId: string) {
+  const { userId: authUserId } = await auth();
+  if (!authUserId) return null;
+
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: {
+      id: true,
+      name: true,
+      username: true,
+      image: true,
+      _count: {
+        select: {
+          followers: true,
+          following: true,
+          posts: true,
+        },
+      },
+    },
+  });
+
+  if (!user) throw new Error("User not found");
+
+  return user;
+}
+
+
+export async function getChatUsers() {
+  const userId = await getDbUserId();
+  if (!userId) return [];
+
+  // Get followers (users who follow me)
+  const followers = await prisma.follows.findMany({
+    where: { followingId: userId },
+    include: {
+      follower: {
+        select: {
+          id: true,
+          name: true,
+          username: true,
+          image: true,
+        },
+      },
+    },
+  });
+
+  // Get following (users I follow)
+  const following = await prisma.follows.findMany({
+    where: { followerId: userId },
+    include: {
+      following: {
+        select: {
+          id: true,
+          name: true,
+          username: true,
+          image: true,
+        },
+      },
+    },
+  });
+
+  // Merge both lists and remove duplicates by user ID
+  const usersMap = new Map();
+
+  followers.forEach((f) => {
+    usersMap.set(f.follower.id, f.follower);
+  });
+
+  following.forEach((f) => {
+    usersMap.set(f.following.id, f.following);
+  });
+
+  return Array.from(usersMap.values());
+}
+
+
 export async function getRandomUsers() {
   try {
     const userId = await getDbUserId();
