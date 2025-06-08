@@ -7,8 +7,13 @@ import {
 import ProfilePageClient from "./ProfilePageClient";
 import { notFound } from "next/navigation";
 
-async function ProfilePageServer({ params }: { params: { username: string } }) {
-  const user = await getProfileByUsername(params.username);
+async function ProfilePageServer({
+  params,
+}: {
+  params: Promise<{ username: string }>;
+}) {
+  const resolvedParams = await params;
+  const user = await getProfileByUsername(resolvedParams.username);
   if (!user) return notFound();
 
   const [posts, likedPosts, isCurrentUserFollowing] = await Promise.all([
