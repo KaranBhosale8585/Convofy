@@ -1,14 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import { pusherServer } from "@/lib/pusher";
+import { v4 as uuidv4 } from "uuid";
 
-// Dummy function — replace with actual DB saving
 async function saveMessageToDb(
   senderId: string,
   receiverId: string,
   content: string
 ) {
   const savedMessage = {
-    id: Date.now().toString(),
+    id: uuidv4(),
     content,
     sender: { id: senderId },
     receiverId,
@@ -35,8 +35,8 @@ export async function POST(req: NextRequest) {
     });
 
     return NextResponse.json({ success: true, message: savedMessage });
-  } catch (error) {
-    console.error("Error sending message:", error);
+  } catch (error: any) {
+    console.error("Error sending message:", error.message);
     return NextResponse.json(
       { success: false, error: "Failed to send message" },
       { status: 500 }

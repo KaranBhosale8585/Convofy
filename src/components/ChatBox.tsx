@@ -125,7 +125,7 @@ const MsgBox: React.FC<MsgBoxProps> = ({
   };
 
   return (
-    <Card className="w-full h-full max-h-screen overflow-hidden border shadow-xl rounded-2xl flex flex-col">
+    <Card className="w-full h-[80vh] max-h-screen overflow-hidden border shadow-xl rounded-2xl flex flex-col">
       {/* Chat Header */}
       <ChatHeader
         receiverId={receiverId}

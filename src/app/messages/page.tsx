@@ -55,7 +55,7 @@ const HomePage: React.FC = () => {
             />
           </>
         ) : (
-          <div className="flex items-center justify-center h-full border rounded-2xl shadow-md bg-gradient-to-br from-muted/40 to-background p-6">
+          <div className="flex items-center justify-center h-[80vh] border rounded-2xl shadow-md bg-gradient-to-br from-muted/40 to-background p-2">
             <div className="text-center space-y-2 animate-fade-in">
               <p className="text-xl">💬</p>
               <p className="text-muted-foreground text-sm md:text-base font-medium leading-relaxed">
