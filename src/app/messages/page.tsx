@@ -19,20 +19,18 @@ const HomePage: React.FC = () => {
     fetchUserId();
   }, []);
 
+  // Sync mobile view state when chat user changes
   useEffect(() => {
-    if (chatUser) {
-      setShowChatUsersMobile(false);
-    } else {
-      setShowChatUsersMobile(true);
-    }
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setShowChatUsersMobile(!chatUser);
   }, [chatUser]);
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-10 gap-6 p-4 min-h-screen">
+    <div className="grid grid-cols-1 lg:grid-cols-10 gap-6 h-[calc(100vh-160px)]">
       <div
         className={`
           ${showChatUsersMobile ? "block" : "hidden"}
-          lg:block lg:col-span-4 sticky top-20 h-[80vh] overflow-y-auto
+          lg:block lg:col-span-4 sticky top-0 h-full overflow-y-auto
         `}
       >
         <ChatUsers setChatUser={setChatUser} />
@@ -41,7 +39,7 @@ const HomePage: React.FC = () => {
       <div
         className={`
           ${showChatUsersMobile ? "hidden" : "block"}
-          lg:block lg:col-span-6 min-h-[400px]
+          lg:block lg:col-span-6 h-full
           flex flex-col
         `}
       >
@@ -55,7 +53,7 @@ const HomePage: React.FC = () => {
             />
           </>
         ) : (
-          <div className="flex items-center justify-center h-[80vh] border rounded-2xl shadow-md bg-gradient-to-br from-muted/40 to-background p-2">
+          <div className="flex items-center justify-center h-full border rounded-2xl shadow-md bg-gradient-to-br from-muted/40 to-background p-2">
             <div className="text-center space-y-2 animate-fade-in">
               <p className="text-xl">💬</p>
               <p className="text-muted-foreground text-sm md:text-base font-medium leading-relaxed">

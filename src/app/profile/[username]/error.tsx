@@ -24,7 +24,7 @@ export default function Error({
           Oops! Something went wrong
         </h2>
         <p className="text-gray-600 mb-6">
-          We're sorry for the inconvenience. Please try again.
+          We&apos;re sorry for the inconvenience. Please try again.
         </p>
         <button
           onClick={() => reset()}

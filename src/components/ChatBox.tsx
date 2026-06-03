@@ -46,21 +46,20 @@ const MsgBox: React.FC<MsgBoxProps> = ({
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
 
-  const fetchMessages = async () => {
-    setLoading(true);
-    try {
-      const res = await getMessagesWithUser(receiverId);
-      res.success
-        ? setMessages(res.messages ?? [])
-        : toast.error(res.error || "Failed to load messages");
-    } catch {
-      toast.error("Error fetching messages");
-    } finally {
-      setLoading(false);
-    }
-  };
-
   useEffect(() => {
+    const fetchMessages = async () => {
+      setLoading(true);
+      try {
+        const res = await getMessagesWithUser(receiverId);
+        res.success
+          ? setMessages(res.messages ?? [])
+          : toast.error(res.error || "Failed to load messages");
+      } catch {
+        toast.error("Error fetching messages");
+      } finally {
+        setLoading(false);
+      }
+    };
     fetchMessages();
   }, [receiverId]);
 
@@ -125,7 +124,7 @@ const MsgBox: React.FC<MsgBoxProps> = ({
   };
 
   return (
-    <Card className="w-full h-[80vh] max-h-screen overflow-hidden border shadow-xl rounded-2xl flex flex-col">
+    <Card className="w-full h-full max-h-full overflow-hidden border shadow-xl rounded-2xl flex flex-col">
       {/* Chat Header */}
       <ChatHeader
         receiverId={receiverId}

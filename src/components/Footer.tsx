@@ -3,7 +3,7 @@ import { Github, Mail, MessageCircle } from "lucide-react";
 
 export default function Footer() {
   return (
-    <footer className="mt-12 bg-background border-t">
+    <footer className="bg-background border-t">
       <div className="max-w-7xl mx-auto px-6 md:px-12 py-4 flex flex-col md:flex-row items-center justify-between gap-3">
         <div className="flex items-center gap-2 font-semibold">
           <MessageCircle size={18} />

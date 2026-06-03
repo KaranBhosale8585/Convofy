@@ -7,14 +7,18 @@ import { SunIcon, MoonIcon } from "lucide-react";
 
 export default function ModeSwitch() {
   const { theme, setTheme } = useTheme();
-  const [isDark, setIsDark] = React.useState(false);
+  const [mounted, setMounted] = React.useState(false);
 
   React.useEffect(() => {
-    setIsDark(theme === "dark");
-  }, [theme]);
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setMounted(true);
+  }, []);
+
+  if (!mounted) return null;
+
+  const isDark = theme === "dark";
 
   const handleChange = (checked: boolean) => {
-    setIsDark(checked);
     setTheme(checked ? "dark" : "light");
   };
 

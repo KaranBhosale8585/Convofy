@@ -27,9 +27,9 @@ export const metadata: Metadata = {
 
 export default function RootLayout({
   children,
-}: Readonly<{
+}: {
   children: React.ReactNode;
-}>) {
+}) {
   return (
     <ClerkProvider>
       <html lang="en" suppressHydrationWarning>
@@ -42,20 +42,30 @@ export default function RootLayout({
             enableSystem
             disableTransitionOnChange
           >
-            <div className="h-screen flex flex-col overflow-hidden">
+            {/* ✅ ROOT CONTAINER */}
+            <div className="min-h-screen flex flex-col">
+              {/* ✅ NAVBAR (fixed height) */}
               <Navbar />
-              <main className="py-8">
+
+              {/* ✅ MAIN AREA */}
+              <main className="flex-1 py-8">
                 <div className="max-w-7xl mx-auto px-4">
+                  {/* ✅ GRID */}
                   <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+                    {/* ✅ SIDEBAR */}
                     <div className="hidden lg:block lg:col-span-3">
                       <Sidebar />
                     </div>
-                    <div className="lg:col-span-9">{children}</div>
+
+                    {/* ✅ PAGE CONTENT */}
+                    <div className="lg:col-span-9">
+                      {children}
+                    </div>
                   </div>
                 </div>
               </main>
-              <Footer />
             </div>
+
             <Toaster />
           </ThemeProvider>
         </body>
