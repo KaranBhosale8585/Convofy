@@ -11,6 +11,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { pusherClient } from "@/lib/pusher";
 import { formatDistanceToNow } from "date-fns";
+import Image from "next/image";
 import { HeartIcon, MessageCircleIcon, UserPlusIcon } from "lucide-react";
 import { useEffect, useState } from "react";
 import toast from "react-hot-toast";
@@ -76,7 +77,7 @@ function NotificationsPage() {
           </div>
         </CardHeader>
         <CardContent className="p-0">
-          <ScrollArea className="h-[calc(100vh-12rem)]">
+          <ScrollArea className="h-[calc(100vh-200px)]">
             {notifications.length === 0 ? (
               <div className="p-4 text-center text-muted-foreground">
                 No notifications yet
@@ -118,11 +119,14 @@ function NotificationsPage() {
                           <div className="text-sm text-muted-foreground rounded-md p-2 bg-muted/30 mt-2">
                             <p>{notification.post.content}</p>
                             {notification.post.image && (
-                              <img
-                                src={notification.post.image}
-                                alt="Post content"
-                                className="mt-2 rounded-md w-full max-w-[200px] h-auto object-cover"
-                              />
+                              <div className="relative mt-2 rounded-md w-full max-w-[200px] h-[150px] overflow-hidden">
+                                <Image
+                                  src={notification.post.image}
+                                  alt="Post content"
+                                  fill
+                                  className="object-cover"
+                                />
+                              </div>
                             )}
                           </div>
                           {notification.type === "COMMENT" &&

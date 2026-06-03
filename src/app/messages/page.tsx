@@ -5,8 +5,15 @@ import ChatUsers from "@/components/ChatUsers";
 import MsgBox from "@/components/ChatBox";
 import { getDbUserId } from "@/actions/user.action";
 
+type ChatUser = {
+  id: string;
+  name: string;
+  username: string;
+  image?: string | null;
+};
+
 const HomePage: React.FC = () => {
-  const [chatUser, setChatUser] = useState<string | null>(null);
+  const [chatUser, setChatUser] = useState<ChatUser | null>(null);
   const [dbUserId, setDbUserId] = useState<string | null>(null);
 
   const [showChatUsersMobile, setShowChatUsersMobile] = useState(true);
@@ -46,7 +53,7 @@ const HomePage: React.FC = () => {
         {chatUser && dbUserId ? (
           <>
             <MsgBox
-              receiverId={chatUser}
+              receiver={chatUser}
               setChatUser={setChatUser}
               setShowChatUsersMobile={setShowChatUsersMobile}
               currentUserId={dbUserId}

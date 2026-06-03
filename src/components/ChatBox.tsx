@@ -15,6 +15,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { SendIcon, Loader2Icon, SmileIcon } from "lucide-react";
 import ChatHeader from "./ChatHeader";
 import { useUser } from "@clerk/nextjs";
+import { useTheme } from "next-themes";
 import Picker from "@emoji-mart/react";
 import data from "@emoji-mart/data";
 import { sendMessage, getMessagesWithUser } from "@/actions/message.action";
@@ -24,19 +25,25 @@ import { formatDistanceToNow } from "date-fns";
 import { motion } from "framer-motion";
 
 interface MsgBoxProps {
-  receiverId: string;
+  receiver: {
+    id: string;
+    name: string;
+    username: string;
+    image?: string | null;
+  };
   currentUserId: string;
-  setChatUser: (userId: string | null) => void;
+  setChatUser: (user: any | null) => void;
   setShowChatUsersMobile: (show: boolean) => void;
 }
 
 const MsgBox: React.FC<MsgBoxProps> = ({
-  receiverId,
+  receiver,
   currentUserId,
   setChatUser,
   setShowChatUsersMobile,
 }) => {
   const { user } = useUser();
+  const { theme } = useTheme();
   const [messages, setMessages] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState("");
@@ -50,7 +57,7 @@ const MsgBox: React.FC<MsgBoxProps> = ({
     const fetchMessages = async () => {
       setLoading(true);
       try {
-        const res = await getMessagesWithUser(receiverId);
+        const res = await getMessagesWithUser(receiver.id);
         res.success
           ? setMessages(res.messages ?? [])
           : toast.error(res.error || "Failed to load messages");
@@ -61,7 +68,7 @@ const MsgBox: React.FC<MsgBoxProps> = ({
       }
     };
     fetchMessages();
-  }, [receiverId]);
+  }, [receiver.id]);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -73,8 +80,8 @@ const MsgBox: React.FC<MsgBoxProps> = ({
     const handleNewMessage = (data: any) => {
       const { message } = data;
       if (
-        message.senderId === receiverId ||
-        message.receiverId === receiverId
+        message.senderId === receiver.id ||
+        message.receiverId === receiver.id
       ) {
         setMessages((prev) => [...prev, message]);
       }
@@ -86,7 +93,7 @@ const MsgBox: React.FC<MsgBoxProps> = ({
       channel.unbind("new-message", handleNewMessage);
       pusherClient.unsubscribe(`user-${currentUserId}`);
     };
-  }, [receiverId, currentUserId]);
+  }, [receiver.id, currentUserId]);
 
   const appendEmoji = useCallback((emoji: { native: string }) => {
     setMessage((prev) => prev + emoji.native);
@@ -95,11 +102,11 @@ const MsgBox: React.FC<MsgBoxProps> = ({
 
   const handleSend = async (e: FormEvent) => {
     e.preventDefault();
-    if (!receiverId || !message.trim()) return;
+    if (!receiver.id || !message.trim()) return;
 
     setIsSending(true);
     try {
-      const res = await sendMessage(receiverId, message);
+      const res = await sendMessage(receiver.id, message);
 
       if (!res.success) return toast.error(res.error || "Send failed");
 
@@ -109,7 +116,7 @@ const MsgBox: React.FC<MsgBoxProps> = ({
           id: Math.random().toString(36).substr(2, 9),
           content: message,
           sender: { id: currentUserId },
-          receiverId,
+          receiverId: receiver.id,
           createdAt: new Date().toISOString(),
         },
       ]);
@@ -127,7 +134,7 @@ const MsgBox: React.FC<MsgBoxProps> = ({
     <Card className="w-full h-full max-h-full overflow-hidden border shadow-xl rounded-2xl flex flex-col">
       {/* Chat Header */}
       <ChatHeader
-        receiverId={receiverId}
+        receiver={receiver}
         setChatUser={setChatUser}
         setShowChatUsersMobile={setShowChatUsersMobile}
       />
@@ -200,7 +207,11 @@ const MsgBox: React.FC<MsgBoxProps> = ({
             {/* Emoji Picker */}
             {showEmojiPicker && (
               <div className="absolute bottom-full left-0 mb-2 z-50">
-                <Picker data={data} onEmojiSelect={appendEmoji} theme="light" />
+                <Picker
+                  data={data}
+                  onEmojiSelect={appendEmoji}
+                  theme={theme === "dark" ? "dark" : "light"}
+                />
               </div>
             )}
 

@@ -15,7 +15,7 @@ type User = {
 };
 
 interface ChatUsersProps {
-  setChatUser: (username: string) => void;
+  setChatUser: (user: User | null) => void;
 }
 
 const ChatUsers: React.FC<ChatUsersProps> = ({ setChatUser }) => {
@@ -72,7 +72,7 @@ const ChatUsers: React.FC<ChatUsersProps> = ({ setChatUser }) => {
                   <div
                     className="text-xs cursor-pointer"
                     onClick={() => {
-                      setChatUser(user.id);
+                      setChatUser(user);
                     }}
                   >
                     <p className="font-medium">{user.name}</p>
