@@ -32,7 +32,6 @@ const CreatePost = () => {
         toast.success("Post created successfully");
       }
     } catch (error) {
-      console.log("Failed to create post:", error);
       toast.error("Failed to create post");
     } finally {
       setIsPosting(false);

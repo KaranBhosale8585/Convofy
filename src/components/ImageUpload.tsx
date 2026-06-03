@@ -37,7 +37,7 @@ function ImageUpload({ endpoint, onChange, value }: ImageUploadProps) {
         onChange(res?.[0].url);
       }}
       onUploadError={(error: Error) => {
-        console.log(error);
+        // Handle error
       }}
     />
   );

@@ -26,7 +26,6 @@ const ChatUsers: React.FC<ChatUsersProps> = ({ setChatUser }) => {
     const fetchUsers = async () => {
       try {
         const result = await getChatUsers();
-        console.log("Fetched users:", result);
         setUsers(result);
       } catch (error) {
         console.error("Error fetching users:", error);
