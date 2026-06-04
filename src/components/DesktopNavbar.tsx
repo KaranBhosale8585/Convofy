@@ -4,8 +4,9 @@ import Link from "next/link";
 import { SignInButton, UserButton } from "@clerk/nextjs";
 import ModeToggle from "./ModeToggle";
 import { currentUser } from "@clerk/nextjs/server";
+import NotificationIcon from "./NotificationIcon";
 
-async function DesktopNavbar() {
+async function DesktopNavbar({ dbUserId }: { dbUserId: string | null }) {
   const user = await currentUser();
 
   return (
@@ -29,7 +30,7 @@ async function DesktopNavbar() {
           </Button>
           <Button variant="ghost" className="flex items-center gap-2" asChild>
             <Link href="/notifications">
-              <BellIcon className="w-4 h-4" />
+              <NotificationIcon dbUserId={dbUserId} />
               <span className="hidden lg:inline">Notifications</span>
             </Link>
           </Button>

@@ -22,8 +22,9 @@ import { useState } from "react";
 import { useAuth, SignInButton, SignOutButton, useUser } from "@clerk/nextjs";
 import { useTheme } from "next-themes";
 import Link from "next/link";
+import NotificationIcon from "./NotificationIcon";
 
-function MobileNavbar() {
+function MobileNavbar({ dbUserId }: { dbUserId: string | null }) {
   const [showMobileMenu, setShowMobileMenu] = useState(false);
   const { isSignedIn } = useAuth();
   const { user } = useUser();
@@ -82,7 +83,7 @@ function MobileNavbar() {
                   asChild
                 >
                   <Link href="/notifications">
-                    <BellIcon className="w-4 h-4" />
+                    <NotificationIcon dbUserId={dbUserId} />
                     Notifications
                   </Link>
                 </Button>

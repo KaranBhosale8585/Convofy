@@ -42,6 +42,15 @@ const getNotificationIcon = (type: string) => {
 function NotificationsPage() {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [dbUserId, setDbUserId] = useState<string | null>(null);
+
+  useEffect(() => {
+    const fetchUserId = async () => {
+      const id = await getDbUserId();
+      setDbUserId(id);
+    };
+    fetchUserId();
+  }, []);
 
   // Fetch notifications
   useEffect(() => {
@@ -62,6 +71,24 @@ function NotificationsPage() {
 
     fetchNotifications();
   }, []);
+
+  // Real-time updates
+  useEffect(() => {
+    if (!dbUserId) return;
+
+    const channel = pusherClient.subscribe(`user-${dbUserId}`);
+
+    channel.bind("new-notification", (newNotification: Notification) => {
+      setNotifications((prev) => [newNotification, ...prev]);
+      
+      // Mark as read immediately if on this page
+      markNotificationsAsRead([newNotification.id]);
+    });
+
+    return () => {
+      pusherClient.unsubscribe(`user-${dbUserId}`);
+    };
+  }, [dbUserId]);
 
   if (isLoading) return <NotificationsSkeleton />;
 

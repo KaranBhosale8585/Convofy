@@ -121,33 +121,48 @@ export async function toggleLike(postId: string) {
       });
     } else {
       // like and create notification (only if liking someone else's post)
-      const [newLike] = await prisma.$transaction([
-        prisma.like.create({
+      const [newLike, notification] = await prisma.$transaction(async (tx) => {
+        const like = await tx.like.create({
           data: {
             userId,
             postId,
           },
-        }),
-        ...(post.authorId !== userId
-          ? [
-              prisma.notification.create({
-                data: {
-                  type: "LIKE",
-                  userId: post.authorId, // recipient (post author)
-                  creatorId: userId, // person who liked
-                  postId,
-                },
-              }),
-            ]
-          : []),
-      ]);
-
-      if (post.authorId !== userId) {
-        await pusherServer.trigger(`user-${post.authorId}`, "new-notification", {
-          type: "LIKE",
-          postId,
-          userId,
         });
+
+        let newNotification = null;
+        if (post.authorId !== userId) {
+          newNotification = await tx.notification.create({
+            data: {
+              type: "LIKE",
+              userId: post.authorId, // recipient (post author)
+              creatorId: userId, // person who liked
+              postId,
+            },
+            include: {
+              creator: {
+                select: {
+                  id: true,
+                  name: true,
+                  username: true,
+                  image: true,
+                },
+              },
+              post: {
+                select: {
+                  id: true,
+                  content: true,
+                  image: true,
+                },
+              },
+            },
+          });
+        }
+
+        return [like, newNotification];
+      });
+
+      if (notification) {
+        await pusherServer.trigger(`user-${post.authorId}`, "new-notification", notification);
       }
     }
 
@@ -174,7 +189,7 @@ export async function createComment(postId: string, content: string) {
     if (!post) throw new Error("Post not found");
 
     // Create comment and notification in a transaction
-    const [comment] = await prisma.$transaction(async (tx) => {
+    const [comment, notification] = await prisma.$transaction(async (tx) => {
       // Create comment first
       const newComment = await tx.comment.create({
         data: {
@@ -185,8 +200,9 @@ export async function createComment(postId: string, content: string) {
       });
 
       // Create notification if commenting on someone else's post
+      let newNotification = null;
       if (post.authorId !== userId) {
-        await tx.notification.create({
+        newNotification = await tx.notification.create({
           data: {
             type: "COMMENT",
             userId: post.authorId,
@@ -194,18 +210,38 @@ export async function createComment(postId: string, content: string) {
             postId,
             commentId: newComment.id,
           },
+          include: {
+            creator: {
+              select: {
+                id: true,
+                name: true,
+                username: true,
+                image: true,
+              },
+            },
+            post: {
+              select: {
+                id: true,
+                content: true,
+                image: true,
+              },
+            },
+            comment: {
+              select: {
+                id: true,
+                content: true,
+                createdAt: true,
+              },
+            },
+          },
         });
       }
 
-      return [newComment];
+      return [newComment, newNotification];
     });
 
-    if (post.authorId !== userId) {
-      await pusherServer.trigger(`user-${post.authorId}`, "new-notification", {
-        type: "COMMENT",
-        postId,
-        userId,
-      });
+    if (notification) {
+      await pusherServer.trigger(`user-${post.authorId}`, "new-notification", notification);
     }
 
     revalidatePath(`/`);

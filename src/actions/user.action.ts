@@ -198,27 +198,36 @@ export async function toggleFollow(targetUserId: string) {
     } else {
       // follow
 
-      await prisma.$transaction([
-        prisma.follows.create({
+      const [follow, notification] = await prisma.$transaction(async (tx) => {
+        const newFollow = await tx.follows.create({
           data: {
             followerId: userId,
             followingId: targetUserId,
           },
-        }),
+        });
 
-        prisma.notification.create({
+        const newNotification = await tx.notification.create({
           data: {
             type: "FOLLOW",
             userId: targetUserId, //user being followed
             creatorId: userId, // user folowing
           },
-        }),
-      ]);
+          include: {
+            creator: {
+              select: {
+                id: true,
+                name: true,
+                username: true,
+                image: true,
+              },
+            },
+          },
+        });
 
-      await pusherServer.trigger(`user-${targetUserId}`, "new-notification", {
-        type: "FOLLOW",
-        userId,
+        return [newFollow, newNotification];
       });
+
+      await pusherServer.trigger(`user-${targetUserId}`, "new-notification", notification);
       revalidatePath("/");
       return { success: true, followed: true };
     }
