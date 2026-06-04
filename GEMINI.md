@@ -15,6 +15,11 @@
     - Fixed messaging object inconsistency.
     - Fixed insecure global notification broadcasting.
     - Fixed follow button feedback logic.
+    - Fixed Prisma Client file lock issue and regenerated client.
+    - Fixed stale `.next` cache causing ENOENT errors via clean restart.
+- **Runtime Verification:**
+    - Confirmed core routes (`/`, `/notifications`, `/messages`, `/profile/[username]`) return 200 OK.
+
 - **Next Steps:**
     - Investigate and resolve `pnpm build` EPERM issue.
     - Implement image compression before upload.
