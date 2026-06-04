@@ -82,6 +82,7 @@ export async function getPosts() {
 
     return posts;
   } catch (error) {
+    console.error("Error in getPosts:", error);
     throw new Error("Failed to fetch posts");
   }
 }
@@ -120,7 +121,7 @@ export async function toggleLike(postId: string) {
       });
     } else {
       // like and create notification (only if liking someone else's post)
-      await prisma.$transaction([
+      const [newLike] = await prisma.$transaction([
         prisma.like.create({
           data: {
             userId,
@@ -140,13 +141,15 @@ export async function toggleLike(postId: string) {
             ]
           : []),
       ]);
-    }
 
-    await pusherServer.trigger("notifications", "new-notification", {
-      type: existingLike ? "UNLIKE" : "LIKE",
-      postId,
-      userId,
-    });
+      if (post.authorId !== userId) {
+        await pusherServer.trigger(`user-${post.authorId}`, "new-notification", {
+          type: "LIKE",
+          postId,
+          userId,
+        });
+      }
+    }
 
     revalidatePath("/");
     return { success: true };
@@ -197,11 +200,13 @@ export async function createComment(postId: string, content: string) {
       return [newComment];
     });
 
-    await pusherServer.trigger("notifications", "new-notification", {
-      type: "COMMENT",
-      postId,
-      userId,
-    });
+    if (post.authorId !== userId) {
+      await pusherServer.trigger(`user-${post.authorId}`, "new-notification", {
+        type: "COMMENT",
+        postId,
+        userId,
+      });
+    }
 
     revalidatePath(`/`);
     return { success: true, comment };

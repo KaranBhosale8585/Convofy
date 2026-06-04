@@ -108,18 +108,9 @@ const MsgBox: React.FC<MsgBoxProps> = ({
     try {
       const res = await sendMessage(receiver.id, message);
 
-      if (!res.success) return toast.error(res.error || "Send failed");
+      if (!res.success || !res.message) return toast.error(res.error || "Send failed");
 
-      setMessages((prev) => [
-        ...prev,
-        {
-          id: Math.random().toString(36).substr(2, 9),
-          content: message,
-          sender: { id: currentUserId },
-          receiverId: receiver.id,
-          createdAt: new Date().toISOString(),
-        },
-      ]);
+      setMessages((prev) => [...prev, res.message]);
 
       setMessage("");
       setShowEmojiPicker(false);

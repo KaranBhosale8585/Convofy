@@ -7,6 +7,8 @@ import Navbar from "@/components/Navbar";
 import Sidebar from "@/components/Sidebar";
 import { Toaster } from "react-hot-toast";
 import Footer from "@/components/Footer";
+import { getDbUserId } from "@/actions/user.action";
+import NotificationListener from "@/components/NotificationListener";
 
 const geistSans = localFont({
   src: "./fonts/GeistVF.woff",
@@ -25,11 +27,13 @@ export const metadata: Metadata = {
     "Convofy is a modern chat application that lets you connect, chat, and share seamlessly in real time.",
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  const dbUserId = await getDbUserId().catch(() => null);
+
   return (
     <ClerkProvider>
       <html lang="en" suppressHydrationWarning>
@@ -67,6 +71,7 @@ export default function RootLayout({
             </div>
 
             <Toaster />
+            <NotificationListener userId={dbUserId} />
           </ThemeProvider>
         </body>
       </html>

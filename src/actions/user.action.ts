@@ -3,6 +3,7 @@
 import prisma from "@/lib/prisma";
 import { auth, currentUser } from "@clerk/nextjs/server";
 import { revalidatePath } from "next/cache";
+import { pusherServer } from "@/lib/pusher";
 
 export async function syncUser() {
   try {
@@ -192,6 +193,8 @@ export async function toggleFollow(targetUserId: string) {
           },
         },
       });
+      revalidatePath("/");
+      return { success: true, followed: false };
     } else {
       // follow
 
@@ -211,9 +214,14 @@ export async function toggleFollow(targetUserId: string) {
           },
         }),
       ]);
+
+      await pusherServer.trigger(`user-${targetUserId}`, "new-notification", {
+        type: "FOLLOW",
+        userId,
+      });
+      revalidatePath("/");
+      return { success: true, followed: true };
     }
-    revalidatePath("/");
-    return { success: true };
   } catch (error) {
     return { success: false, error: "Error toggling follow" };
   }

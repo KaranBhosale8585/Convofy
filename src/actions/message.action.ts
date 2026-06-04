@@ -19,6 +19,11 @@ export async function sendMessage(receiverId: string, content: string) {
         senderId,
         receiverId,
       },
+      include: {
+        sender: {
+          select: { id: true, name: true, username: true, image: true },
+        },
+      },
     });
 
     await pusherServer.trigger(
@@ -31,6 +36,7 @@ export async function sendMessage(receiverId: string, content: string) {
           createdAt: message.createdAt,
           senderId: message.senderId,
           receiverId: message.receiverId,
+          sender: message.sender,
         },
       }
     );

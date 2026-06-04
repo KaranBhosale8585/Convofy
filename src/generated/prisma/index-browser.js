@@ -156,15 +156,15 @@ exports.Prisma.CommentScalarFieldEnum = {
   id: 'id',
   content: 'content',
   authorId: 'authorId',
-  postId: 'postId',
-  createdAt: 'createdAt'
+  createdAt: 'createdAt',
+  postId: 'postId'
 };
 
 exports.Prisma.LikeScalarFieldEnum = {
   id: 'id',
-  postId: 'postId',
   userId: 'userId',
-  createdAt: 'createdAt'
+  createdAt: 'createdAt',
+  postId: 'postId'
 };
 
 exports.Prisma.FollowsScalarFieldEnum = {
