@@ -33,11 +33,11 @@ const HomePage: React.FC = () => {
   }, [chatUser]);
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-10 gap-6 h-[calc(100vh-160px)] overflow-hidden">
+    <div className="flex flex-col lg:flex-row gap-6 h-[calc(100vh-160px)] lg:h-[calc(100vh-140px)] overflow-hidden min-h-[500px]">
       <div
         className={`
-          ${showChatUsersMobile ? "block" : "hidden"}
-          lg:block lg:col-span-4 sticky top-0 h-full overflow-y-auto
+          ${showChatUsersMobile ? "flex" : "hidden"}
+          lg:flex lg:w-1/3 xl:w-1/4 h-full flex-col min-h-0
         `}
       >
         <ChatUsers setChatUser={setChatUser} activeUserId={chatUser?.id} />
@@ -45,36 +45,33 @@ const HomePage: React.FC = () => {
 
       <div
         className={`
-          ${showChatUsersMobile ? "hidden" : "block"}
-          lg:block lg:col-span-6 h-full
-          flex flex-col
+          ${showChatUsersMobile ? "hidden" : "flex"}
+          lg:flex lg:flex-1 h-full flex-col min-h-0
         `}
       >
         {chatUser && dbUserId ? (
-          <>
-            <MsgBox
-              receiver={chatUser}
-              setChatUser={setChatUser}
-              setShowChatUsersMobile={setShowChatUsersMobile}
-              currentUserId={dbUserId}
-            />
-          </>
+          <MsgBox
+            receiver={chatUser}
+            setChatUser={setChatUser}
+            setShowChatUsersMobile={setShowChatUsersMobile}
+            currentUserId={dbUserId}
+          />
         ) : (
           <div className="flex items-center justify-center h-full border rounded-2xl shadow-md bg-gradient-to-br from-muted/40 to-background p-2">
-            <div className="text-center space-y-2 animate-fade-in">
-              <p className="text-xl">💬</p>
-              <p className="text-muted-foreground text-sm md:text-base font-medium leading-relaxed">
+            <div className="text-center space-y-2 animate-fade-in px-4">
+              <p className="text-3xl mb-4">💬</p>
+              <h3 className="text-xl font-semibold">Your Messages</h3>
+              <p className="text-muted-foreground text-sm md:text-base font-medium leading-relaxed max-w-sm mx-auto">
                 {dbUserId ? (
                   <>
-                    🤔 Still quiet in here...
-                    <br />
-                    Select someone from the list and start the convo magic! ✨
+                    Select someone from the list to start a conversation. 
+                    Your realm of connection awaits! ✨
                   </>
                 ) : (
                   <>
                     🧙‍♂️ Preparing your chat realm...
                     <br />
-                    Hold tight while we summon your session from the cloud!
+                    Hold tight while we summon your session!
                   </>
                 )}
               </p>

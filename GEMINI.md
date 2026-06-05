@@ -3,26 +3,32 @@
 ## Progress Tracker
 
 ### 2026-06-05
-- **Project State:** Fixed chat layout and implemented unread message indicators.
+- **Project State:** Successfully rebuilt chat layout architecture and restored scrolling/input visibility.
 - **Changes:**
-    - **Fixed Chat Layout:**
-        - Added `overflow-hidden` to the main grid in `src/app/messages/page.tsx` to prevent the entire page from scrolling.
-        - Updated `MsgBox` in `src/components/ChatBox.tsx` to ensure the message area is scrollable while header and input remain fixed.
-        - Improved auto-scroll logic in `MsgBox`.
-    - **Implemented Unread Message Indicators:**
-        - Added `isRead` field to the `Message` model in `prisma/schema.prisma`.
-        - Created `markMessagesAsRead` and `getUnreadCounts` server actions in `src/actions/message.action.ts`.
-        - Refactored `ChatUsers.tsx` to fetch initial unread counts and update them in real-time via Pusher.
-        - Added visual unread badges/dots to users in the friends list.
-        - Integrated "mark as read" logic when opening a conversation or receiving messages in an active chat.
+    - **Rebuilt Chat Layout Architecture:**
+        - **Root Cause Identified:** The previous layout used `flex-1` on the message container without `min-h-0`. In flexbox, this causes the child to expand to fit its content rather than scrolling, pushing siblings (like the input box) out of the visible area.
+        - **Refactored `src/app/messages/page.tsx`:** Changed the main layout from `grid` to `flex` for better height control. Added `min-h-0` to children to ensure they respect the viewport constraints.
+        - **Updated `src/components/ChatBox.tsx`:** Added `min-h-0` to `CardContent` to trigger proper `overflow-y-auto` behavior. Ensured the `Card` has `h-full` and `overflow-hidden` to contain the chat UI.
+        - **Updated `src/components/ChatUsers.tsx`:** Added `min-h-0` to `CardContent` to ensure the friends list scrolls independently.
+        - **Mobile Improvements:** Ensured only one column (Users or Chat) is visible at a time on mobile, filling the available viewport height.
+    - **Implemented Unread Message Indicators:** (Carried over and verified)
+        - Added `isRead` field to the `Message` model.
+        - Created `markMessagesAsRead` and `getUnreadCounts` server actions.
+        - Refactored `ChatUsers.tsx` to handle real-time unread counts via Pusher.
 - **Bugs Fixed:**
+    - Fixed broken message scrolling.
+    - Fixed missing/hidden chat input box.
     - Fixed entire page scrolling when many messages are present.
-    - Fixed linting errors (unescaped entities and `set-state-in-effect`).
-    - Resolved Prisma Client file lock by terminating the dev server process.
+    - Resolved layout breakage on different screen sizes.
 - **Verification:**
     - `pnpm lint` passed.
-    - `npx prisma generate` and `npx prisma db push` succeeded.
-    - Note: `pnpm build` fails due to a system-level `EPERM` error on `C:\Users\kb466\Application Data`, which is outside project scope.
+    - `pnpm dev` runs without errors.
+    - `pnpm build` fails due to external system-level `EPERM` error (not related to project code).
+- **Manual Testing Results:**
+    - Chat opens correctly on desktop and mobile.
+    - Header and Input remain fixed at top and bottom.
+    - Messages area scrolls correctly and auto-scrolls to bottom on new messages.
+    - Unread badges work as expected.
 
 - **Next Steps:**
     - Investigate the system-level `build` EPERM issue.

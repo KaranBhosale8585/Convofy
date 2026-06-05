@@ -135,9 +135,9 @@ const MsgBox: React.FC<MsgBoxProps> = ({
   };
 
   return (
-    <Card className="w-full h-full overflow-hidden border shadow-xl rounded-2xl flex flex-col bg-background/50 backdrop-blur-sm">
+    <Card className="w-full h-full overflow-hidden border shadow-xl rounded-2xl flex flex-col bg-background/50 backdrop-blur-sm min-h-0">
       {/* Chat Header */}
-      <div className="shrink-0">
+      <div className="shrink-0 z-10">
         <ChatHeader
           receiver={receiver}
           setChatUser={setChatUser}
@@ -147,7 +147,7 @@ const MsgBox: React.FC<MsgBoxProps> = ({
       </div>
 
       {/* Messages */}
-      <CardContent className="flex-1 overflow-y-auto p-4 space-y-4 scroll-smooth custom-scrollbar">
+      <CardContent className="flex-1 overflow-y-auto p-4 space-y-4 scroll-smooth custom-scrollbar min-h-0 relative bg-background/30 backdrop-blur-sm">
         {loading ? (
           <div className="flex flex-col items-center justify-center h-full space-y-2 text-muted-foreground">
             <Loader2Icon className="w-6 h-6 animate-spin" />
@@ -160,41 +160,43 @@ const MsgBox: React.FC<MsgBoxProps> = ({
             <p className="text-xs text-muted-foreground">Don&apos;t be shy, say hi!</p>
           </div>
         ) : (
-          <AnimatePresence initial={false}>
-            {messages.map((msg) => {
-              const isSender = msg.sender?.id === currentUserId;
+          <div className="flex flex-col space-y-4">
+            <AnimatePresence initial={false}>
+              {messages.map((msg) => {
+                const isSender = msg.sender?.id === currentUserId;
 
-              return (
-                <motion.div
-                  key={msg.id}
-                  initial={{ opacity: 0, y: 10, scale: 0.95 }}
-                  animate={{ opacity: 1, y: 0, scale: 1 }}
-                  className={`flex ${isSender ? "justify-end" : "justify-start"}`}
-                >
-                  <div
-                    className={`max-w-[85%] sm:max-w-[70%] px-4 py-2 rounded-2xl border shadow-sm text-sm leading-relaxed ${
-                      isSender
-                        ? "bg-blue-600 text-white border-blue-500"
-                        : "bg-muted/50 border-muted dark:border-gray-800"
-                    }`}
+                return (
+                  <motion.div
+                    key={msg.id}
+                    initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    className={`flex ${isSender ? "justify-end" : "justify-start"}`}
                   >
-                    <p className="whitespace-pre-line break-words">{msg.content}</p>
-                    <span className={`block text-[10px] text-right mt-1 opacity-60 ${isSender ? "text-blue-100" : ""}`}>
-                      {formatDistanceToNow(new Date(msg.createdAt), {
-                        addSuffix: true,
-                      })}
-                    </span>
-                  </div>
-                </motion.div>
-              );
-            })}
-          </AnimatePresence>
+                    <div
+                      className={`max-w-[85%] sm:max-w-[70%] px-4 py-2 rounded-2xl border shadow-sm text-sm leading-relaxed ${
+                        isSender
+                          ? "bg-blue-600 text-white border-blue-500"
+                          : "bg-muted/50 border-muted dark:border-gray-800"
+                      }`}
+                    >
+                      <p className="whitespace-pre-line break-words">{msg.content}</p>
+                      <span className={`block text-[10px] text-right mt-1 opacity-60 ${isSender ? "text-blue-100" : ""}`}>
+                        {formatDistanceToNow(new Date(msg.createdAt), {
+                          addSuffix: true,
+                        })}
+                      </span>
+                    </div>
+                  </motion.div>
+                );
+              })}
+            </AnimatePresence>
+          </div>
         )}
-        <div ref={bottomRef} className="h-2" />
+        <div ref={bottomRef} className="h-2 shrink-0" />
       </CardContent>
 
       {/* Chat Input */}
-      <CardFooter className="shrink-0 border-t p-4 sm:px-6 bg-background/80 backdrop-blur-md">
+      <CardFooter className="shrink-0 border-t p-4 sm:px-6 bg-background/80 backdrop-blur-md z-10">
         <form onSubmit={handleSend} className="w-full flex items-center gap-3">
           {/* Avatar (Hidden on small screens to save space) */}
           <Avatar className="hidden sm:flex w-9 h-9 border shadow-sm shrink-0">

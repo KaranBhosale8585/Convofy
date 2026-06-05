@@ -90,11 +90,11 @@ const ChatUsers: React.FC<ChatUsersProps> = ({ setChatUser, activeUserId }) => {
   };
 
   return (
-    <Card className="h-full flex flex-col">
-      <CardHeader className="shrink-0">
-        <CardTitle>Friends</CardTitle>
+    <Card className="h-full flex flex-col min-h-0 shadow-lg">
+      <CardHeader className="shrink-0 border-b bg-muted/20">
+        <CardTitle className="text-lg font-semibold">Friends</CardTitle>
       </CardHeader>
-      <CardContent className="flex-1 overflow-y-auto">
+      <CardContent className="flex-1 overflow-y-auto p-2 min-h-0 custom-scrollbar">
         <div className="space-y-4">
           {loading ? (
             Array.from({ length: 4 }).map((_, index) => (
