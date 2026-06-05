@@ -18,6 +18,7 @@ export async function sendMessage(receiverId: string, content: string) {
         content,
         senderId,
         receiverId,
+        isRead: false,
       },
       include: {
         sender: {
@@ -37,6 +38,7 @@ export async function sendMessage(receiverId: string, content: string) {
           senderId: message.senderId,
           receiverId: message.receiverId,
           sender: message.sender,
+          isRead: message.isRead,
         },
       }
     );
@@ -74,5 +76,56 @@ export async function getMessagesWithUser(otherUserId: string) {
   } catch (error) {
     console.error("Failed to fetch messages:", error);
     return { success: false, error: "Failed to fetch messages" };
+  }
+}
+
+export async function markMessagesAsRead(senderId: string) {
+  try {
+    const userId = await getDbUserId();
+    if (!userId) return { success: false, error: "Unauthorized" };
+
+    await prisma.message.updateMany({
+      where: {
+        senderId: senderId,
+        receiverId: userId,
+        isRead: false,
+      },
+      data: {
+        isRead: true,
+      },
+    });
+
+    return { success: true };
+  } catch (error) {
+    console.error("Failed to mark messages as read:", error);
+    return { success: false, error: "Failed to mark messages as read" };
+  }
+}
+
+export async function getUnreadCounts() {
+  try {
+    const userId = await getDbUserId();
+    if (!userId) return { success: false, error: "Unauthorized" };
+
+    const unreadMessages = await prisma.message.groupBy({
+      by: ["senderId"],
+      where: {
+        receiverId: userId,
+        isRead: false,
+      },
+      _count: {
+        id: true,
+      },
+    });
+
+    const counts = unreadMessages.reduce((acc, curr) => {
+      acc[curr.senderId] = curr._count.id;
+      return acc;
+    }, {} as Record<string, number>);
+
+    return { success: true, counts };
+  } catch (error) {
+    console.error("Failed to fetch unread counts:", error);
+    return { success: false, error: "Failed to fetch unread counts" };
   }
 }

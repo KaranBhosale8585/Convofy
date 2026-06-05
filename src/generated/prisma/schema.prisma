@@ -36,6 +36,7 @@ model Message {
   content    String
   senderId   String
   receiverId String
+  isRead     Boolean  @default(false)
   createdAt  DateTime @default(now())
   receiver   User     @relation("receivedMessages", fields: [receiverId], references: [id], onDelete: Cascade)
   sender     User     @relation("sentMessages", fields: [senderId], references: [id], onDelete: Cascade)

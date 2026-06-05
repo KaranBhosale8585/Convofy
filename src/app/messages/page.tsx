@@ -33,14 +33,14 @@ const HomePage: React.FC = () => {
   }, [chatUser]);
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-10 gap-6 h-[calc(100vh-160px)]">
+    <div className="grid grid-cols-1 lg:grid-cols-10 gap-6 h-[calc(100vh-160px)] overflow-hidden">
       <div
         className={`
           ${showChatUsersMobile ? "block" : "hidden"}
           lg:block lg:col-span-4 sticky top-0 h-full overflow-y-auto
         `}
       >
-        <ChatUsers setChatUser={setChatUser} />
+        <ChatUsers setChatUser={setChatUser} activeUserId={chatUser?.id} />
       </div>
 
       <div

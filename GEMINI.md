@@ -2,26 +2,30 @@
 
 ## Progress Tracker
 
-### 2026-06-04
-- **Project State:** Improving real-time features and notification system.
+### 2026-06-05
+- **Project State:** Fixed chat layout and implemented unread message indicators.
 - **Changes:**
-    - Enhanced real-time notifications to send full objects (including creator and post details) for `LIKE`, `COMMENT`, and `FOLLOW` events.
-    - Updated `NotificationsPage` to dynamically update the list in real-time using Pusher.
-    - Implemented `getUnreadNotificationCount` server action.
-    - Created `NotificationIcon.tsx` component to display real-time unread notification badges in the Navbar.
-    - Integrated `NotificationIcon` into both `DesktopNavbar` and `MobileNavbar`.
-    - Refactored `sendMessage` and notification triggers to ensure consistent object structures.
+    - **Fixed Chat Layout:**
+        - Added `overflow-hidden` to the main grid in `src/app/messages/page.tsx` to prevent the entire page from scrolling.
+        - Updated `MsgBox` in `src/components/ChatBox.tsx` to ensure the message area is scrollable while header and input remain fixed.
+        - Improved auto-scroll logic in `MsgBox`.
+    - **Implemented Unread Message Indicators:**
+        - Added `isRead` field to the `Message` model in `prisma/schema.prisma`.
+        - Created `markMessagesAsRead` and `getUnreadCounts` server actions in `src/actions/message.action.ts`.
+        - Refactored `ChatUsers.tsx` to fetch initial unread counts and update them in real-time via Pusher.
+        - Added visual unread badges/dots to users in the friends list.
+        - Integrated "mark as read" logic when opening a conversation or receiving messages in an active chat.
 - **Bugs Fixed:**
-    - Fixed messaging object inconsistency.
-    - Fixed insecure global notification broadcasting.
-    - Fixed follow button feedback logic.
-    - Fixed Prisma Client file lock issue and regenerated client.
-    - Fixed stale `.next` cache causing ENOENT errors via clean restart.
-- **Runtime Verification:**
-    - Confirmed core routes (`/`, `/notifications`, `/messages`, `/profile/[username]`) return 200 OK.
+    - Fixed entire page scrolling when many messages are present.
+    - Fixed linting errors (unescaped entities and `set-state-in-effect`).
+    - Resolved Prisma Client file lock by terminating the dev server process.
+- **Verification:**
+    - `pnpm lint` passed.
+    - `npx prisma generate` and `npx prisma db push` succeeded.
+    - Note: `pnpm build` fails due to a system-level `EPERM` error on `C:\Users\kb466\Application Data`, which is outside project scope.
 
 - **Next Steps:**
-    - Investigate and resolve `pnpm build` EPERM issue.
+    - Investigate the system-level `build` EPERM issue.
     - Implement image compression before upload.
     - Add real-time "typing" indicators for chat.
     - Add "read receipts" for messages.
