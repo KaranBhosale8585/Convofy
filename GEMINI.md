@@ -30,11 +30,15 @@
     - Messages area scrolls correctly and auto-scrolls to bottom on new messages.
     - Unread badges work as expected.
 
+- **Cleanup & Deployment Prep:**
+    - Removed `test-db.ts` (temporary test script).
+    - Removed `package-lock.json` (redundant, using `pnpm`).
+    - Removed temporary Prisma engine artifacts (`*.tmp*`).
+    - Updated `.gitignore` to exclude `/src/generated/` (auto-generated Prisma client).
+    - Verified linting passing.
+
 - **Next Steps:**
     - Investigate the system-level `build` EPERM issue.
-    - Implement image compression before upload.
-    - Add real-time "typing" indicators for chat.
-    - Add "read receipts" for messages.
 
 
 ## TODO
