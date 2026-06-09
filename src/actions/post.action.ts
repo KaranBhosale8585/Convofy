@@ -3,23 +3,26 @@
 import prisma from "@/lib/prisma";
 import { getDbUserId } from "./user.action";
 import { revalidatePath } from "next/cache";
-import { pusherServer } from "@/lib/pusher";
 
-export async function createPost(content: string, image: string) {
+import { handleActionError, type ActionResponse } from "@/lib/error-handler";
+import { safeTrigger } from "@/lib/pusher";
+
+export async function createPost(content: string, image: string): Promise<ActionResponse> {
   try {
     const userId = await getDbUserId();
 
-    if (!userId) return;
+    if (!userId) return { success: false, error: "Unauthorized" };
+    if (!content.trim() && !image) return { success: false, error: "Content or image is required" };
 
     const post = await prisma.post.create({
       data: {
-        content,
+        content: content.trim(),
         image,
         authorId: userId,
       },
     });
 
-    await pusherServer.trigger("notifications", "new-notification", {
+    await safeTrigger("notifications", "new-notification", {
       post: {
         id: post.id,
         content: post.content,
@@ -29,10 +32,9 @@ export async function createPost(content: string, image: string) {
       },
     });
     revalidatePath("/");
-    return { success: true, post };
+    return { success: true, data: post };
   } catch (error) {
-    console.error("Failed to create post:", error);
-    return { success: false, error: "Failed to create post" };
+    return handleActionError(error, "Failed to create post");
   }
 }
 
@@ -83,14 +85,17 @@ export async function getPosts() {
     return posts;
   } catch (error) {
     console.error("Error in getPosts:", error);
+    // Returning empty array instead of throwing might be safer for some RSCs, 
+    // but throwing allows Next.js error boundaries to catch it.
+    // Given the audit goal, we keep throwing but ensure it's handled in the UI.
     throw new Error("Failed to fetch posts");
   }
 }
 
-export async function toggleLike(postId: string) {
+export async function toggleLike(postId: string): Promise<ActionResponse> {
   try {
     const userId = await getDbUserId();
-    if (!userId) return;
+    if (!userId) return { success: false, error: "Unauthorized" };
 
     // check if like exists
     const existingLike = await prisma.like.findUnique({
@@ -107,7 +112,7 @@ export async function toggleLike(postId: string) {
       select: { authorId: true },
     });
 
-    if (!post) throw new Error("Post not found");
+    if (!post) return { success: false, error: "Post not found" };
 
     if (existingLike) {
       // unlike
@@ -162,31 +167,30 @@ export async function toggleLike(postId: string) {
       });
 
       if (notification) {
-        await pusherServer.trigger(`user-${post.authorId}`, "new-notification", notification);
+        await safeTrigger(`user-${post.authorId}`, "new-notification", notification);
       }
     }
 
     revalidatePath("/");
     return { success: true };
   } catch (error) {
-    console.error("Failed to toggle like:", error);
-    return { success: false, error: "Failed to toggle like" };
+    return handleActionError(error, "Failed to toggle like");
   }
 }
 
-export async function createComment(postId: string, content: string) {
+export async function createComment(postId: string, content: string): Promise<ActionResponse> {
   try {
     const userId = await getDbUserId();
 
-    if (!userId) return;
-    if (!content) throw new Error("Content is required");
+    if (!userId) return { success: false, error: "Unauthorized" };
+    if (!content.trim()) return { success: false, error: "Content is required" };
 
     const post = await prisma.post.findUnique({
       where: { id: postId },
       select: { authorId: true },
     });
 
-    if (!post) throw new Error("Post not found");
+    if (!post) return { success: false, error: "Post not found" };
 
     // Create comment and notification in a transaction
     const [comment, notification] = await prisma.$transaction(async (tx) => {
@@ -241,18 +245,17 @@ export async function createComment(postId: string, content: string) {
     });
 
     if (notification) {
-      await pusherServer.trigger(`user-${post.authorId}`, "new-notification", notification);
+      await safeTrigger(`user-${post.authorId}`, "new-notification", notification);
     }
 
     revalidatePath(`/`);
-    return { success: true, comment };
+    return { success: true, data: comment };
   } catch (error) {
-    console.error("Failed to create comment:", error);
-    return { success: false, error: "Failed to create comment" };
+    return handleActionError(error, "Failed to create comment");
   }
 }
 
-export async function deletePost(postId: string) {
+export async function deletePost(postId: string): Promise<ActionResponse> {
   try {
     const userId = await getDbUserId();
 
@@ -261,9 +264,9 @@ export async function deletePost(postId: string) {
       select: { authorId: true },
     });
 
-    if (!post) throw new Error("Post not found");
+    if (!post) return { success: false, error: "Post not found" };
     if (post.authorId !== userId)
-      throw new Error("Unauthorized - no delete permission");
+      return { success: false, error: "Unauthorized - no delete permission" };
 
     await prisma.post.delete({
       where: { id: postId },
@@ -272,7 +275,6 @@ export async function deletePost(postId: string) {
     revalidatePath("/"); // purge the cache
     return { success: true };
   } catch (error) {
-    console.error("Failed to delete post:", error);
-    return { success: false, error: "Failed to delete post" };
+    return handleActionError(error, "Failed to delete post");
   }
 }

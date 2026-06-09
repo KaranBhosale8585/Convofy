@@ -2,13 +2,14 @@
 
 import prisma from "@/lib/prisma";
 import { getDbUserId } from "./user.action";
-import {pusherServer} from "@/lib/pusher";
+import { handleActionError, type ActionResponse } from "@/lib/error-handler";
+import { safeTrigger } from "@/lib/pusher";
 
-export async function sendMessage(receiverId: string, content: string) {
+export async function sendMessage(receiverId: string, content: string): Promise<ActionResponse> {
   try {
     const senderId = await getDbUserId();
     if (!senderId) return { success: false, error: "Unauthorized" };
-    if (!content)
+    if (!content.trim())
       return { success: false, error: "Message content is required" };
     if (!receiverId)
       return { success: false, error: "Receiver ID is required" };
@@ -27,7 +28,7 @@ export async function sendMessage(receiverId: string, content: string) {
       },
     });
 
-    await pusherServer.trigger(
+    await safeTrigger(
       `user-${receiverId}`,
       "new-message",
       {
@@ -42,14 +43,13 @@ export async function sendMessage(receiverId: string, content: string) {
         },
       }
     );
-    return { success: true, message };
+    return { success: true, data: message };
   } catch (error) {
-    console.error("Failed to send message:", error);
-    return { success: false, error: "Failed to send message" };
+    return handleActionError(error, "Failed to send message");
   }
 }
 
-export async function getMessagesWithUser(otherUserId: string) {
+export async function getMessagesWithUser(otherUserId: string): Promise<ActionResponse> {
   try {
     const userId = await getDbUserId();
     if (!userId) return { success: false, error: "Unauthorized" };
@@ -72,14 +72,13 @@ export async function getMessagesWithUser(otherUserId: string) {
       },
     });
 
-    return { success: true, messages };
+    return { success: true, data: messages };
   } catch (error) {
-    console.error("Failed to fetch messages:", error);
-    return { success: false, error: "Failed to fetch messages" };
+    return handleActionError(error, "Failed to fetch messages");
   }
 }
 
-export async function markMessagesAsRead(senderId: string) {
+export async function markMessagesAsRead(senderId: string): Promise<ActionResponse> {
   try {
     const userId = await getDbUserId();
     if (!userId) return { success: false, error: "Unauthorized" };
@@ -97,12 +96,11 @@ export async function markMessagesAsRead(senderId: string) {
 
     return { success: true };
   } catch (error) {
-    console.error("Failed to mark messages as read:", error);
-    return { success: false, error: "Failed to mark messages as read" };
+    return handleActionError(error, "Failed to mark messages as read");
   }
 }
 
-export async function getUnreadCounts() {
+export async function getUnreadCounts(): Promise<ActionResponse> {
   try {
     const userId = await getDbUserId();
     if (!userId) return { success: false, error: "Unauthorized" };
@@ -123,9 +121,8 @@ export async function getUnreadCounts() {
       return acc;
     }, {} as Record<string, number>);
 
-    return { success: true, counts };
+    return { success: true, data: counts };
   } catch (error) {
-    console.error("Failed to fetch unread counts:", error);
-    return { success: false, error: "Failed to fetch unread counts" };
+    return handleActionError(error, "Failed to fetch unread counts");
   }
 }

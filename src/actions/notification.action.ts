@@ -3,12 +3,14 @@
 import prisma from "@/lib/prisma";
 import { getDbUserId } from "./user.action";
 
+import { handleActionError, type ActionResponse } from "@/lib/error-handler";
+
 export async function getNotifications() {
   try {
     const userId = await getDbUserId();
     if (!userId) return [];
 
-    const notifications = await prisma.notification.findMany({
+    return await prisma.notification.findMany({
       where: {
         userId,
       },
@@ -40,15 +42,13 @@ export async function getNotifications() {
         createdAt: "desc",
       },
     });
-
-    return notifications;
   } catch (error) {
     console.error("Error fetching notifications:", error);
-    throw new Error("Failed to fetch notifications");
+    return []; // Return empty array to prevent UI crash in RSC
   }
 }
 
-export async function markNotificationsAsRead(notificationIds: string[]) {
+export async function markNotificationsAsRead(notificationIds: string[]): Promise<ActionResponse> {
   try {
     await prisma.notification.updateMany({
       where: {
@@ -63,8 +63,7 @@ export async function markNotificationsAsRead(notificationIds: string[]) {
 
     return { success: true };
   } catch (error) {
-    console.error("Error marking notifications as read:", error);
-    return { success: false };
+    return handleActionError(error, "Error marking notifications as read");
   }
 }
 
@@ -73,14 +72,12 @@ export async function getUnreadNotificationCount() {
     const userId = await getDbUserId();
     if (!userId) return 0;
 
-    const count = await prisma.notification.count({
+    return await prisma.notification.count({
       where: {
         userId,
         read: false,
       },
     });
-
-    return count;
   } catch (error) {
     console.error("Error fetching unread notification count:", error);
     return 0;

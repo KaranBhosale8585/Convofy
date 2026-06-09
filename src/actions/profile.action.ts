@@ -4,9 +4,11 @@ import { getDbUserId } from "./user.action";
 import { revalidatePath } from "next/cache";
 import { auth } from "@clerk/nextjs/server";
 
+import { handleActionError, type ActionResponse } from "@/lib/error-handler";
+
 export async function getProfileByUsername(username: string) {
   try {
-    const user = await prisma.user.findUnique({
+    return await prisma.user.findUnique({
       where: { username: username },
       select: {
         id: true,
@@ -26,17 +28,15 @@ export async function getProfileByUsername(username: string) {
         },
       },
     });
-
-    return user;
   } catch (error) {
     console.error("Error fetching profile:", error);
-    throw new Error("Failed to fetch profile");
+    return null;
   }
 }
 
 export async function getUserPosts(userId: string) {
   try {
-    const posts = await prisma.post.findMany({
+    return await prisma.post.findMany({
       where: {
         authorId: userId,
       },
@@ -80,17 +80,15 @@ export async function getUserPosts(userId: string) {
         createdAt: "desc",
       },
     });
-
-    return posts;
   } catch (error) {
     console.error("Error fetching user posts:", error);
-    throw new Error("Failed to fetch user posts");
+    return [];
   }
 }
 
 export async function getUserLikedPosts(userId: string) {
   try {
-    const likedPosts = await prisma.post.findMany({
+    return await prisma.post.findMany({
       where: {
         likes: {
           some: {
@@ -138,18 +136,16 @@ export async function getUserLikedPosts(userId: string) {
         createdAt: "desc",
       },
     });
-
-    return likedPosts;
   } catch (error) {
     console.error("Error fetching liked posts:", error);
-    throw new Error("Failed to fetch liked posts");
+    return [];
   }
 }
 
-export async function updateProfile(formData: FormData) {
+export async function updateProfile(formData: FormData): Promise<ActionResponse> {
   try {
     const { userId: clerkId } = await auth();
-    if (!clerkId) throw new Error("Unauthorized");
+    if (!clerkId) return { success: false, error: "Unauthorized" };
 
     const name = formData.get("name") as string;
     const bio = formData.get("bio") as string;
@@ -167,10 +163,9 @@ export async function updateProfile(formData: FormData) {
     });
 
     revalidatePath("/profile");
-    return { success: true, user };
+    return { success: true, data: user };
   } catch (error) {
-    console.error("Error updating profile:", error);
-    return { success: false, error: "Failed to update profile" };
+    return handleActionError(error, "Failed to update profile");
   }
 }
 

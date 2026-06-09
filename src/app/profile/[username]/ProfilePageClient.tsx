@@ -73,6 +73,8 @@ function ProfilePageClient({
     if (result.success) {
       setShowEditDialog(false);
       toast.success("Profile updated successfully");
+    } else {
+      toast.error(result.error || "Failed to update profile");
     }
   };
 
@@ -81,8 +83,13 @@ function ProfilePageClient({
 
     try {
       setIsUpdatingFollow(true);
-      await toggleFollow(user.id);
-      setIsFollowing(!isFollowing);
+      const result = await toggleFollow(user.id);
+      if (result.success) {
+        setIsFollowing(result.data.followed);
+        toast.success(result.data.followed ? "Followed successfully" : "Unfollowed successfully");
+      } else {
+        toast.error(result.error || "Failed to update follow status");
+      }
     } catch (error) {
       toast.error("Failed to update follow status");
     } finally {

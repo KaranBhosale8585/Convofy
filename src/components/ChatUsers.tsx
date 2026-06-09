@@ -38,9 +38,9 @@ const ChatUsers: React.FC<ChatUsersProps> = ({ setChatUser, activeUserId }) => {
         
         setCurrentUserId(dbUserId);
         setUsers(chatUsers);
-        if (countsRes.success && countsRes.counts) {
+        if (countsRes.success && countsRes.data) {
           // Initial load: filter out active user's unread counts
-          const filteredCounts = { ...countsRes.counts };
+          const filteredCounts = { ...countsRes.data };
           if (activeUserId) delete filteredCounts[activeUserId];
           setUnreadCounts(filteredCounts);
         }

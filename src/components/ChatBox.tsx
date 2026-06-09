@@ -63,7 +63,7 @@ const MsgBox: React.FC<MsgBoxProps> = ({
       try {
         const res = await getMessagesWithUser(receiver.id);
         if (res.success) {
-          setMessages(res.messages ?? []);
+          setMessages(res.data ?? []);
           // Mark as read when opening
           await markMessagesAsRead(receiver.id);
         } else {
@@ -121,9 +121,9 @@ const MsgBox: React.FC<MsgBoxProps> = ({
     try {
       const res = await sendMessage(receiver.id, message);
 
-      if (!res.success || !res.message) return toast.error(res.error || "Send failed");
+      if (!res.success || !res.data) return toast.error(res.error || "Send failed");
 
-      setMessages((prev) => [...prev, res.message]);
+      setMessages((prev) => [...prev, res.data]);
 
       setMessage("");
       setShowEmojiPicker(false);
