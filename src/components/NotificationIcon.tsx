@@ -26,18 +26,17 @@ const NotificationIcon = ({ dbUserId }: NotificationIconProps) => {
 
     if (!pusherClient) return;
 
-    const channel = pusherClient.subscribe(`user-${dbUserId}`);
+    // Use private channel for security
+    const channel = pusherClient.subscribe(`private-user-${dbUserId}`);
 
     channel.bind("new-notification", () => {
-      // If we are already on the notifications page, we don't need to increment the badge
-      // as the page itself handles marking as read.
       if (pathname !== "/notifications") {
         setUnreadCount((prev) => prev + 1);
       }
     });
 
     return () => {
-      pusherClient.unsubscribe(`user-${dbUserId}`);
+      pusherClient.unsubscribe(`private-user-${dbUserId}`);
     };
   }, [dbUserId, pathname]);
 

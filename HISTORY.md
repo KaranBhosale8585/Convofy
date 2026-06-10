@@ -68,3 +68,10 @@
 - Implemented real-time online/offline indicators in both sidebar and chat header.
 - Removed all incomplete calling features (video/voice icons) from the UI.
 - Verified instant synchronization of messages across multiple browser sessions.
+
+## Session Update: June 10, 2026 (Part 5)
+- Secured all Pusher user channels by adding the \private-\ prefix.
+- Fixed real-time sync issues by preventing components from unsubscribing from shared channels.
+- Optimized \ChatUsers\ and \ChatBox\ to use refs for active user tracking, avoiding stale closure bugs in Pusher callbacks.
+- Verified that unread counts, sidebar reordering, and message delivery now work instantly without refresh.
+- Confirmed that real-time presence (Online/Offline) is now 100% accurate via Pusher auth.

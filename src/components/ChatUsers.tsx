@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState, useMemo } from "react";
+import React, { useEffect, useState, useMemo, useRef } from "react";
 import { getChatUsers, getDbUserId } from "@/actions/user.action";
 import { Card, CardContent } from "./ui/card";
 import Link from "next/link";
@@ -34,6 +34,12 @@ const ChatUsers: React.FC<ChatUsersProps> = ({ setChatUser, activeUserId }) => {
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [onlineUsers, setOnlineUsers] = useState<Set<string>>(new Set());
 
+  // Use refs to avoid stale closures in Pusher callbacks
+  const activeUserIdRef = useRef(activeUserId);
+  useEffect(() => {
+    activeUserIdRef.current = activeUserId;
+  }, [activeUserId]);
+
   useEffect(() => {
     const init = async () => {
       try {
@@ -57,7 +63,7 @@ const ChatUsers: React.FC<ChatUsersProps> = ({ setChatUser, activeUserId }) => {
       }
     };
     init();
-  }, [activeUserId]);
+  }, []); // Only run once on mount
 
   useEffect(() => {
     if (!currentUserId || !pusherClient) return;
@@ -84,7 +90,7 @@ const ChatUsers: React.FC<ChatUsersProps> = ({ setChatUser, activeUserId }) => {
     });
 
     // Private channel for messages and updates
-    const userChannel = pusherClient.subscribe(`user-${currentUserId}`);
+    const userChannel = pusherClient.subscribe(`private-user-${currentUserId}`);
 
     userChannel.bind("chat-update", (data: any) => {
         const { senderId, receiverId, lastMessage, timestamp } = data;
@@ -102,7 +108,7 @@ const ChatUsers: React.FC<ChatUsersProps> = ({ setChatUser, activeUserId }) => {
         });
 
         // Update unread count if chat is not active
-        if (senderId !== currentUserId && senderId !== activeUserId) {
+        if (senderId !== currentUserId && senderId !== activeUserIdRef.current) {
             setUnreadCounts((prev) => ({
                 ...prev,
                 [senderId]: (prev[senderId] || 0) + 1,
@@ -120,9 +126,9 @@ const ChatUsers: React.FC<ChatUsersProps> = ({ setChatUser, activeUserId }) => {
 
     return () => {
       pusherClient.unsubscribe("presence-online");
-      pusherClient.unsubscribe(`user-${currentUserId}`);
+      pusherClient.unsubscribe(`private-user-${currentUserId}`);
     };
-  }, [currentUserId, activeUserId]);
+  }, [currentUserId]); // Only resubscribe if currentUserId changes
 
   const handleSelectUser = (user: User) => {
     setChatUser(user);
@@ -163,7 +169,7 @@ const ChatUsers: React.FC<ChatUsersProps> = ({ setChatUser, activeUserId }) => {
       </div>
 
       {/* User List */}
-      <CardContent className="flex-1 overflow-y-auto px-3 py-4 min-h-0 custom-scrollbar">
+      <CardContent className="flex-1 overflow-y-auto px-3 py-4 min-h-0 custom-scrollbar text-foreground">
         <div className="space-y-1">
           {loading ? (
             Array.from({ length: 6 }).map((_, index) => (
@@ -211,8 +217,8 @@ const ChatUsers: React.FC<ChatUsersProps> = ({ setChatUser, activeUserId }) => {
                   </div>
 
                   <div className="flex-1 min-w-0">
-                    <div className="flex items-center justify-between mb-0.5">
-                      <p className={`font-semibold truncate text-sm ${isActive ? "text-blue-600 dark:text-blue-400" : "text-foreground"}`}>
+                    <div className="flex items-center justify-between mb-0.5 text-foreground">
+                      <p className={`font-semibold truncate text-sm ${isActive ? "text-blue-600 dark:text-blue-400" : ""}`}>
                         {user.name}
                       </p>
                       {user.lastMessageAt && (

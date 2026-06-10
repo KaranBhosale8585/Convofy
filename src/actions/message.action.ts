@@ -29,8 +29,9 @@ export async function sendMessage(receiverId: string, content: string): Promise<
     });
 
     // Notify BOTH sender and receiver channels for instant sync across tabs and accounts
+    // Using private- prefix for security and auth verification
     await safeTrigger(
-      [`user-${receiverId}`, `user-${senderId}`],
+      [`private-user-${receiverId}`, `private-user-${senderId}`],
       "new-message",
       {
         message: {
@@ -47,7 +48,7 @@ export async function sendMessage(receiverId: string, content: string): Promise<
 
     // Trigger a general chat update for reordering and previewing
     await safeTrigger(
-        [`user-${receiverId}`, `user-${senderId}`],
+        [`private-user-${receiverId}`, `private-user-${senderId}`],
         "chat-update",
         {
           senderId: message.senderId,
@@ -109,7 +110,7 @@ export async function markMessagesAsRead(senderId: string): Promise<ActionRespon
     });
 
     // Notify the user themselves to update their own UI (unread counts)
-    await safeTrigger(`user-${userId}`, "unread-update", { senderId });
+    await safeTrigger(`private-user-${userId}`, "unread-update", { senderId });
 
     return { success: true };
   } catch (error) {

@@ -12,7 +12,8 @@ const NotificationListener = ({ userId }: NotificationListenerProps) => {
   useEffect(() => {
     if (!userId || !pusherClient) return;
 
-    const channel = pusherClient.subscribe(`user-${userId}`);
+    // Use private channel for security
+    const channel = pusherClient.subscribe(`private-user-${userId}`);
 
     channel.bind("new-notification", (data: any) => {
       let message = "";
@@ -37,7 +38,7 @@ const NotificationListener = ({ userId }: NotificationListenerProps) => {
     });
 
     return () => {
-      pusherClient.unsubscribe(`user-${userId}`);
+      pusherClient.unsubscribe(`private-user-${userId}`);
     };
   }, [userId]);
 

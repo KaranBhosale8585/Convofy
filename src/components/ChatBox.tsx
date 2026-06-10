@@ -83,15 +83,22 @@ const MsgBox: React.FC<MsgBoxProps> = ({
   useEffect(() => {
     if (!currentUserId || !pusherClient) return;
 
-    const channel = pusherClient.subscribe(`user-${currentUserId}`);
+    // Use private channel for security
+    const channel = pusherClient.subscribe(`private-user-${currentUserId}`);
 
     const handleNewMessage = async (data: any) => {
       const { message } = data;
+      // Only add to messages if it's the current active conversation
       if (
         message.senderId === receiver.id ||
         message.receiverId === receiver.id
       ) {
-        setMessages((prev) => [...prev, message]);
+        setMessages((prev) => {
+            // Avoid duplicates
+            if (prev.some(m => m.id === message.id)) return prev;
+            return [...prev, message];
+        });
+        
         if (message.senderId === receiver.id) {
           await markMessagesAsRead(receiver.id);
         }
@@ -102,7 +109,9 @@ const MsgBox: React.FC<MsgBoxProps> = ({
 
     return () => {
       channel.unbind("new-message", handleNewMessage);
-      pusherClient.unsubscribe(`user-${currentUserId}`);
+      // DO NOT unsubscribe from the private-user channel here, 
+      // as it's shared with other components. 
+      // Just unbind the listener.
     };
   }, [receiver.id, currentUserId]);
 
@@ -115,8 +124,9 @@ const MsgBox: React.FC<MsgBoxProps> = ({
     e.preventDefault();
     if (!receiver.id || !message.trim()) return;
 
+    const tempId = `temp-${Date.now()}`;
     const tempMessage = {
-      id: Date.now().toString(),
+      id: tempId,
       content: message,
       senderId: currentUserId,
       receiverId: receiver.id,
@@ -134,18 +144,19 @@ const MsgBox: React.FC<MsgBoxProps> = ({
     try {
       const res = await sendMessage(receiver.id, tempMessage.content);
       if (!res.success || !res.data) {
-        setMessages((prev) => prev.filter(m => m.id !== tempMessage.id));
+        setMessages((prev) => prev.filter(m => m.id !== tempId));
         return toast.error(res.error || "Send failed");
       }
-      setMessages((prev) => prev.map(m => m.id === tempMessage.id ? res.data : m));
+      // Replace temp message with actual data from server
+      setMessages((prev) => prev.map(m => m.id === tempId ? res.data : m));
     } catch {
-      setMessages((prev) => prev.filter(m => m.id !== tempMessage.id));
+      setMessages((prev) => prev.filter(m => m.id !== tempId));
       toast.error("Message send failed");
     }
   };
 
   return (
-    <Card className="w-full h-full overflow-hidden border-none lg:border shadow-2xl rounded-none lg:rounded-3xl flex flex-col bg-background/60 backdrop-blur-md min-h-0">
+    <Card className="w-full h-full overflow-hidden border-none lg:border shadow-2xl rounded-none lg:rounded-3xl flex flex-col bg-background/60 backdrop-blur-md min-h-0 text-foreground">
       <div className="shrink-0 z-20">
         <ChatHeader
           receiver={receiver}
@@ -164,13 +175,13 @@ const MsgBox: React.FC<MsgBoxProps> = ({
             <p className="text-sm font-medium tracking-tight">Syncing conversations...</p>
           </div>
         ) : messages.length === 0 ? (
-          <div className="flex flex-col items-center justify-center h-full text-center space-y-4 opacity-80 animate-in fade-in zoom-in duration-500">
+          <div className="flex flex-col items-center justify-center h-full text-center space-y-4 opacity-80 animate-in fade-in zoom-in duration-500 text-foreground">
             <div className="w-20 h-20 bg-blue-500/10 rounded-full flex items-center justify-center text-blue-500 mb-2">
               <SmileIcon className="w-10 h-10" />
             </div>
             <div className="space-y-1">
-              <p className="text-lg font-bold text-foreground">Say Hello to {receiver.name}!</p>
-              <p className="text-xs text-muted-foreground max-w-[200px] mx-auto">Start a conversation and build your realm of connection.</p>
+              <p className="text-lg font-bold">Say Hello to {receiver.name}!</p>
+              <p className="text-xs text-muted-foreground max-w-[200px] mx-auto font-medium">Start a conversation and build your realm of connection.</p>
             </div>
           </div>
         ) : (
@@ -263,7 +274,7 @@ const MsgBox: React.FC<MsgBoxProps> = ({
               value={message}
               onChange={(e) => setMessage(e.target.value)}
               placeholder="Message..."
-              className="w-full min-h-[44px] max-h-[150px] resize-none border-none bg-transparent py-3 pr-4 text-sm focus-visible:ring-0 shadow-none scrollbar-hide"
+              className="w-full min-h-[44px] max-h-[150px] resize-none border-none bg-transparent py-3 pr-4 text-sm focus-visible:ring-0 shadow-none scrollbar-hide text-foreground placeholder:text-muted-foreground font-medium"
               rows={1}
               onKeyDown={(e) => {
                 if (e.key === "Enter" && !e.shiftKey) {
@@ -293,7 +304,7 @@ const MsgBox: React.FC<MsgBoxProps> = ({
             type="submit"
             size="icon"
             className={`h-11 w-11 rounded-2xl shadow-lg transition-all duration-200 shrink-0 ${
-              message.trim() ? "bg-blue-600 text-white hover:bg-blue-700 scale-100 hover:shadow-blue-500/20" : "bg-muted text-muted-foreground scale-95 opacity-50"
+              message.trim() ? "bg-blue-600 text-white hover:bg-blue-700 scale-100 hover:shadow-blue-500/20" : "bg-muted text-muted-foreground scale-95 opacity-50 font-medium"
             }`}
             disabled={!message.trim() || isSending}
           >
