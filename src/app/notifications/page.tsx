@@ -74,7 +74,7 @@ function NotificationsPage() {
 
   // Real-time updates
   useEffect(() => {
-    if (!dbUserId) return;
+    if (!dbUserId || !pusherClient) return;
 
     const channel = pusherClient.subscribe(`user-${dbUserId}`);
 

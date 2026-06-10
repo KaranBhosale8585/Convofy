@@ -83,6 +83,8 @@ const MsgBox: React.FC<MsgBoxProps> = ({
   }, [messages]);
 
   useEffect(() => {
+    if (!pusherClient) return;
+
     const channel = pusherClient.subscribe(`user-${currentUserId}`);
 
     const handleNewMessage = async (data: any) => {

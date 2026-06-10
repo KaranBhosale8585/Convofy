@@ -10,7 +10,7 @@ interface NotificationListenerProps {
 
 const NotificationListener = ({ userId }: NotificationListenerProps) => {
   useEffect(() => {
-    if (!userId) return;
+    if (!userId || !pusherClient) return;
 
     const channel = pusherClient.subscribe(`user-${userId}`);
 

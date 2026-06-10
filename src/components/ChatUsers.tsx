@@ -54,7 +54,7 @@ const ChatUsers: React.FC<ChatUsersProps> = ({ setChatUser, activeUserId }) => {
   }, [activeUserId]); // Include activeUserId to re-filter if it changes during load
 
   useEffect(() => {
-    if (!currentUserId) return;
+    if (!currentUserId || !pusherClient) return;
 
     const channel = pusherClient.subscribe(`user-${currentUserId}`);
 

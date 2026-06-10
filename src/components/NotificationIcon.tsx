@@ -24,6 +24,8 @@ const NotificationIcon = ({ dbUserId }: NotificationIconProps) => {
 
     fetchCount();
 
+    if (!pusherClient) return;
+
     const channel = pusherClient.subscribe(`user-${dbUserId}`);
 
     channel.bind("new-notification", () => {
