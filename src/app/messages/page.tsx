@@ -4,6 +4,7 @@ import React, { useEffect, useState } from "react";
 import ChatUsers from "@/components/ChatUsers";
 import MsgBox from "@/components/ChatBox";
 import { getDbUserId } from "@/actions/user.action";
+import { MessageSquareIcon } from "lucide-react";
 
 type ChatUser = {
   id: string;
@@ -15,7 +16,6 @@ type ChatUser = {
 const HomePage: React.FC = () => {
   const [chatUser, setChatUser] = useState<ChatUser | null>(null);
   const [dbUserId, setDbUserId] = useState<string | null>(null);
-
   const [showChatUsersMobile, setShowChatUsersMobile] = useState(true);
 
   useEffect(() => {
@@ -33,20 +33,24 @@ const HomePage: React.FC = () => {
   }, [chatUser]);
 
   return (
-    <div className="flex flex-col lg:flex-row gap-6 h-[calc(100vh-160px)] lg:h-[calc(100vh-140px)] overflow-hidden min-h-[500px]">
+    <div className="flex gap-0 lg:gap-6 h-[calc(100vh-80px)] lg:h-[calc(100vh-120px)] overflow-hidden transition-all duration-300">
+      {/* Sidebar - Friends List */}
       <div
         className={`
-          ${showChatUsersMobile ? "flex" : "hidden"}
-          lg:flex lg:w-1/3 xl:w-1/4 h-full flex-col min-h-0
+          ${showChatUsersMobile ? "flex w-full" : "hidden"}
+          lg:flex lg:w-[320px] xl:w-[380px] h-full flex-col min-h-0 shrink-0
+          transition-all duration-300 ease-in-out
         `}
       >
         <ChatUsers setChatUser={setChatUser} activeUserId={chatUser?.id} />
       </div>
 
+      {/* Main Chat Area */}
       <div
         className={`
-          ${showChatUsersMobile ? "hidden" : "flex"}
-          lg:flex lg:flex-1 h-full flex-col min-h-0
+          ${showChatUsersMobile ? "hidden" : "flex w-full"}
+          lg:flex lg:flex-1 h-full flex-col min-h-0 overflow-hidden
+          transition-all duration-300 ease-in-out
         `}
       >
         {chatUser && dbUserId ? (
@@ -57,24 +61,29 @@ const HomePage: React.FC = () => {
             currentUserId={dbUserId}
           />
         ) : (
-          <div className="flex items-center justify-center h-full border rounded-2xl shadow-md bg-gradient-to-br from-muted/40 to-background p-2">
-            <div className="text-center space-y-2 animate-fade-in px-4">
-              <p className="text-3xl mb-4">💬</p>
-              <h3 className="text-xl font-semibold">Your Messages</h3>
-              <p className="text-muted-foreground text-sm md:text-base font-medium leading-relaxed max-w-sm mx-auto">
-                {dbUserId ? (
-                  <>
-                    Select someone from the list to start a conversation. 
-                    Your realm of connection awaits! ✨
-                  </>
-                ) : (
-                  <>
-                    🧙‍♂️ Preparing your chat realm...
-                    <br />
-                    Hold tight while we summon your session!
-                  </>
-                )}
-              </p>
+          <div className="flex items-center justify-center h-full border-none lg:border rounded-3xl shadow-none lg:shadow-sm bg-muted/20 backdrop-blur-sm p-4">
+            <div className="text-center space-y-6 animate-in fade-in zoom-in duration-500 max-w-sm">
+              <div className="relative mx-auto w-24 h-24 flex items-center justify-center rounded-full bg-blue-500/10 border-4 border-blue-500/20 text-blue-500">
+                <MessageSquareIcon className="w-10 h-10" />
+                <div className="absolute -top-1 -right-1 w-6 h-6 rounded-full bg-blue-500 border-4 border-background animate-pulse" />
+              </div>
+              <div className="space-y-2">
+                <h3 className="text-2xl font-bold tracking-tight">Your Conversations</h3>
+                <p className="text-muted-foreground text-sm md:text-base leading-relaxed">
+                  {dbUserId ? (
+                    "Select a friend from the list to start messaging. Your encrypted realm of connection is ready."
+                  ) : (
+                    "Initializing your secure messaging environment..."
+                  )}
+                </p>
+              </div>
+              {dbUserId && (
+                <div className="pt-4 flex flex-wrap justify-center gap-2">
+                  <span className="px-3 py-1 rounded-full bg-muted text-[10px] uppercase font-bold tracking-wider text-muted-foreground">End-to-End</span>
+                  <span className="px-3 py-1 rounded-full bg-muted text-[10px] uppercase font-bold tracking-wider text-muted-foreground">Real-time</span>
+                  <span className="px-3 py-1 rounded-full bg-muted text-[10px] uppercase font-bold tracking-wider text-muted-foreground">Secure</span>
+                </div>
+              )}
             </div>
           </div>
         )}

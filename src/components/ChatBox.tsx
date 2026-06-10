@@ -7,12 +7,11 @@ import React, {
   useCallback,
   FormEvent,
 } from "react";
-import { Card, CardContent, CardFooter } from "@/components/ui/card";
-import { Separator } from "@/components/ui/separator";
+import { Card, CardContent } from "@/components/ui/card";
 import { Avatar, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { SendIcon, Loader2Icon, SmileIcon } from "lucide-react";
+import { SendIcon, Loader2Icon, SmileIcon, CheckCheckIcon, CheckIcon } from "lucide-react";
 import ChatHeader from "./ChatHeader";
 import { useUser } from "@clerk/nextjs";
 import { useTheme } from "next-themes";
@@ -21,7 +20,7 @@ import data from "@emoji-mart/data";
 import { sendMessage, getMessagesWithUser, markMessagesAsRead } from "@/actions/message.action";
 import { pusherClient } from "@/lib/pusher";
 import toast from "react-hot-toast";
-import { formatDistanceToNow } from "date-fns";
+import { format } from "date-fns";
 import { motion, AnimatePresence } from "framer-motion";
 
 interface MsgBoxProps {
@@ -64,7 +63,6 @@ const MsgBox: React.FC<MsgBoxProps> = ({
         const res = await getMessagesWithUser(receiver.id);
         if (res.success) {
           setMessages(res.data ?? []);
-          // Mark as read when opening
           await markMessagesAsRead(receiver.id);
         } else {
           toast.error(res.error || "Failed to load messages");
@@ -79,11 +77,11 @@ const MsgBox: React.FC<MsgBoxProps> = ({
   }, [receiver.id]);
 
   useEffect(() => {
-    scrollToBottom();
-  }, [messages]);
+    scrollToBottom(loading ? "auto" : "smooth");
+  }, [messages, loading]);
 
   useEffect(() => {
-    if (!pusherClient) return;
+    if (!currentUserId || !pusherClient) return;
 
     const channel = pusherClient.subscribe(`user-${currentUserId}`);
 
@@ -94,8 +92,6 @@ const MsgBox: React.FC<MsgBoxProps> = ({
         message.receiverId === receiver.id
       ) {
         setMessages((prev) => [...prev, message]);
-
-        // If message is from the receiver, mark as read immediately
         if (message.senderId === receiver.id) {
           await markMessagesAsRead(receiver.id);
         }
@@ -119,74 +115,126 @@ const MsgBox: React.FC<MsgBoxProps> = ({
     e.preventDefault();
     if (!receiver.id || !message.trim()) return;
 
-    setIsSending(true);
+    const tempMessage = {
+      id: Date.now().toString(),
+      content: message,
+      senderId: currentUserId,
+      receiverId: receiver.id,
+      createdAt: new Date().toISOString(),
+      isRead: false,
+      sender: { id: currentUserId },
+      isTemp: true
+    };
+
+    setMessages((prev) => [...prev, tempMessage]);
+    setMessage("");
+    setShowEmojiPicker(false);
+    textareaRef.current?.focus();
+
     try {
-      const res = await sendMessage(receiver.id, message);
-
-      if (!res.success || !res.data) return toast.error(res.error || "Send failed");
-
-      setMessages((prev) => [...prev, res.data]);
-
-      setMessage("");
-      setShowEmojiPicker(false);
+      const res = await sendMessage(receiver.id, tempMessage.content);
+      if (!res.success || !res.data) {
+        setMessages((prev) => prev.filter(m => m.id !== tempMessage.id));
+        return toast.error(res.error || "Send failed");
+      }
+      setMessages((prev) => prev.map(m => m.id === tempMessage.id ? res.data : m));
     } catch {
+      setMessages((prev) => prev.filter(m => m.id !== tempMessage.id));
       toast.error("Message send failed");
-    } finally {
-      setIsSending(false);
     }
   };
 
   return (
-    <Card className="w-full h-full overflow-hidden border shadow-xl rounded-2xl flex flex-col bg-background/50 backdrop-blur-sm min-h-0">
-      {/* Chat Header */}
-      <div className="shrink-0 z-10">
+    <Card className="w-full h-full overflow-hidden border-none lg:border shadow-2xl rounded-none lg:rounded-3xl flex flex-col bg-background/60 backdrop-blur-md min-h-0">
+      <div className="shrink-0 z-20">
         <ChatHeader
           receiver={receiver}
           setChatUser={setChatUser}
           setShowChatUsersMobile={setShowChatUsersMobile}
         />
-        <Separator />
       </div>
 
-      {/* Messages */}
-      <CardContent className="flex-1 overflow-y-auto p-4 space-y-4 scroll-smooth custom-scrollbar min-h-0 relative bg-background/30 backdrop-blur-sm">
+      <CardContent className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-6 scroll-smooth custom-scrollbar min-h-0 relative bg-muted/5 dark:bg-transparent">
         {loading ? (
-          <div className="flex flex-col items-center justify-center h-full space-y-2 text-muted-foreground">
-            <Loader2Icon className="w-6 h-6 animate-spin" />
-            <p className="text-xs">Summoning messages...</p>
+          <div className="flex flex-col items-center justify-center h-full space-y-4 text-muted-foreground animate-in fade-in duration-500">
+            <div className="relative">
+              <div className="w-12 h-12 rounded-full border-4 border-blue-500/20 border-t-blue-500 animate-spin" />
+              <Loader2Icon className="w-6 h-6 absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-blue-500" />
+            </div>
+            <p className="text-sm font-medium tracking-tight">Syncing conversations...</p>
           </div>
         ) : messages.length === 0 ? (
-          <div className="flex flex-col items-center justify-center h-full text-center space-y-2 opacity-60">
-            <p className="text-2xl">👋</p>
-            <p className="text-sm font-medium">No messages yet.</p>
-            <p className="text-xs text-muted-foreground">Don&apos;t be shy, say hi!</p>
+          <div className="flex flex-col items-center justify-center h-full text-center space-y-4 opacity-80 animate-in fade-in zoom-in duration-500">
+            <div className="w-20 h-20 bg-blue-500/10 rounded-full flex items-center justify-center text-blue-500 mb-2">
+              <SmileIcon className="w-10 h-10" />
+            </div>
+            <div className="space-y-1">
+              <p className="text-lg font-bold text-foreground">Say Hello to {receiver.name}!</p>
+              <p className="text-xs text-muted-foreground max-w-[200px] mx-auto">Start a conversation and build your realm of connection.</p>
+            </div>
           </div>
         ) : (
-          <div className="flex flex-col space-y-4">
+          <div className="flex flex-col space-y-2">
             <AnimatePresence initial={false}>
-              {messages.map((msg) => {
-                const isSender = msg.sender?.id === currentUserId;
+              {messages.map((msg, index) => {
+                const isSender = msg.senderId === currentUserId;
+                const nextMsg = messages[index + 1];
+                const isLastInGroup = !nextMsg || nextMsg.senderId !== msg.senderId;
+                const prevMsg = messages[index - 1];
+                const isFirstInGroup = !prevMsg || prevMsg.senderId !== msg.senderId;
 
                 return (
                   <motion.div
                     key={msg.id}
-                    initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                    initial={{ opacity: 0, y: 5, scale: 0.98 }}
                     animate={{ opacity: 1, y: 0, scale: 1 }}
-                    className={`flex ${isSender ? "justify-end" : "justify-start"}`}
+                    className={`flex ${isSender ? "justify-end" : "justify-start"} ${isFirstInGroup ? "mt-4" : "mt-0.5"}`}
                   >
-                    <div
-                      className={`max-w-[85%] sm:max-w-[70%] px-4 py-2 rounded-2xl border shadow-sm text-sm leading-relaxed ${
-                        isSender
-                          ? "bg-blue-600 text-white border-blue-500"
-                          : "bg-muted/50 border-muted dark:border-gray-800"
-                      }`}
-                    >
-                      <p className="whitespace-pre-line break-words">{msg.content}</p>
-                      <span className={`block text-[10px] text-right mt-1 opacity-60 ${isSender ? "text-blue-100" : ""}`}>
-                        {formatDistanceToNow(new Date(msg.createdAt), {
-                          addSuffix: true,
-                        })}
-                      </span>
+                    {!isSender && isLastInGroup ? (
+                      <Avatar className="w-7 h-7 mr-2 self-end mb-1 border shadow-sm">
+                        <AvatarImage src={receiver.image || "/avatar.png"} />
+                      </Avatar>
+                    ) : !isSender ? (
+                      <div className="w-7 mr-2" />
+                    ) : null}
+
+                    <div className="group relative flex flex-col max-w-[80%] sm:max-w-[70%]">
+                      <div
+                        className={`
+                          px-4 py-2.5 text-sm leading-relaxed shadow-sm transition-all duration-200
+                          ${isSender 
+                            ? `bg-blue-600 text-white selection:bg-blue-400 selection:text-white
+                               ${isFirstInGroup && isLastInGroup ? "rounded-2xl rounded-tr-sm" : 
+                                 isFirstInGroup ? "rounded-t-2xl rounded-bl-2xl rounded-tr-sm" :
+                                 isLastInGroup ? "rounded-b-2xl rounded-tl-2xl rounded-tr-sm" : 
+                                 "rounded-l-2xl rounded-r-sm"}`
+                            : `bg-background dark:bg-muted/50 text-foreground border border-muted/50 dark:border-gray-800
+                               ${isFirstInGroup && isLastInGroup ? "rounded-2xl rounded-tl-sm" : 
+                                 isFirstInGroup ? "rounded-t-2xl rounded-br-2xl rounded-tl-sm" :
+                                 isLastInGroup ? "rounded-b-2xl rounded-tr-2xl rounded-tl-sm" : 
+                                 "rounded-r-2xl rounded-l-sm"}`
+                          }
+                        `}
+                      >
+                        <p className="whitespace-pre-line break-words">{msg.content}</p>
+                      </div>
+
+                      {isLastInGroup && (
+                        <div className={`flex items-center gap-1.5 mt-1 px-1 ${isSender ? "justify-end" : "justify-start"}`}>
+                          <span className="text-[10px] font-medium text-muted-foreground opacity-70">
+                            {format(new Date(msg.createdAt), "HH:mm")}
+                          </span>
+                          {isSender && (
+                            msg.isTemp ? (
+                               <Loader2Icon className="w-3 h-3 animate-spin text-muted-foreground" />
+                            ) : msg.isRead ? (
+                              <CheckCheckIcon className="w-3 h-3 text-blue-500" />
+                            ) : (
+                              <CheckIcon className="w-3 h-3 text-muted-foreground" />
+                            )
+                          )}
+                        </div>
+                      )}
                     </div>
                   </motion.div>
                 );
@@ -194,29 +242,28 @@ const MsgBox: React.FC<MsgBoxProps> = ({
             </AnimatePresence>
           </div>
         )}
-        <div ref={bottomRef} className="h-2 shrink-0" />
+        <div ref={bottomRef} className="h-4 shrink-0" />
       </CardContent>
 
-      {/* Chat Input */}
-      <CardFooter className="shrink-0 border-t p-4 sm:px-6 bg-background/80 backdrop-blur-md z-10">
-        <form onSubmit={handleSend} className="w-full flex items-center gap-3">
-          {/* Avatar (Hidden on small screens to save space) */}
-          <Avatar className="hidden sm:flex w-9 h-9 border shadow-sm shrink-0">
-            <AvatarImage
-              src={user?.imageUrl || "/avatar.png"}
-              alt="User avatar"
-            />
-          </Avatar>
+      <div className="shrink-0 border-t p-4 sm:p-6 bg-background/80 backdrop-blur-md z-20">
+        <form onSubmit={handleSend} className="max-w-4xl mx-auto flex items-end gap-3">
+          <div className="relative flex-1 flex items-center bg-muted/30 dark:bg-muted/20 rounded-2xl border border-transparent focus-within:border-blue-500/50 focus-within:bg-background transition-all duration-200">
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              onClick={() => setShowEmojiPicker((prev) => !prev)}
+              className="ml-1 text-muted-foreground hover:text-blue-500 rounded-full h-9 w-9 shrink-0"
+            >
+              <SmileIcon className="w-5 h-5" />
+            </Button>
 
-          {/* Message + Emoji Button */}
-          <div className="relative flex-1 flex items-center gap-2">
             <Textarea
               ref={textareaRef}
               value={message}
               onChange={(e) => setMessage(e.target.value)}
-              placeholder="Type a message..."
-              disabled={isSending}
-              className="w-full min-h-[40px] max-h-[120px] resize-none text-sm rounded-xl border px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500 shadow-sm transition-all"
+              placeholder="Message..."
+              className="w-full min-h-[44px] max-h-[150px] resize-none border-none bg-transparent py-3 pr-4 text-sm focus-visible:ring-0 shadow-none scrollbar-hide"
               rows={1}
               onKeyDown={(e) => {
                 if (e.key === "Enter" && !e.shiftKey) {
@@ -224,54 +271,36 @@ const MsgBox: React.FC<MsgBoxProps> = ({
                   handleSend(e as any);
                 }
               }}
-              aria-label="Message input"
             />
 
-            {/* Emoji Picker */}
             {showEmojiPicker && (
-              <div className="absolute bottom-full right-0 mb-4 z-50">
-                <div className="shadow-2xl rounded-2xl overflow-hidden border">
+              <div className="absolute bottom-full right-0 lg:left-0 mb-4 z-50 animate-in fade-in slide-in-from-bottom-2 duration-200">
+                <div className="shadow-2xl rounded-3xl overflow-hidden border bg-background">
                   <Picker
                     data={data}
                     onEmojiSelect={appendEmoji}
                     theme={theme === "dark" ? "dark" : "light"}
                     set="native"
+                    previewPosition="none"
+                    skinTonePosition="none"
                   />
                 </div>
               </div>
             )}
-
-            {/* Emoji Button */}
-            <Button
-              type="button"
-              variant="ghost"
-              size="icon"
-              onClick={() => setShowEmojiPicker((prev) => !prev)}
-              disabled={isSending}
-              className="text-muted-foreground hover:text-blue-500 hover:bg-blue-50/10 transition shrink-0"
-            >
-              <SmileIcon className="w-5 h-5" />
-            </Button>
           </div>
 
-          {/* Send Button */}
           <Button
             type="submit"
-            className="h-10 w-10 sm:w-auto sm:px-4 rounded-xl bg-blue-600 text-white hover:bg-blue-700 active:scale-95 transition-all shadow-md shrink-0"
+            size="icon"
+            className={`h-11 w-11 rounded-2xl shadow-lg transition-all duration-200 shrink-0 ${
+              message.trim() ? "bg-blue-600 text-white hover:bg-blue-700 scale-100 hover:shadow-blue-500/20" : "bg-muted text-muted-foreground scale-95 opacity-50"
+            }`}
             disabled={!message.trim() || isSending}
-            aria-label="Send message"
           >
-            {isSending ? (
-              <Loader2Icon className="w-4 h-4 animate-spin" />
-            ) : (
-              <>
-                <SendIcon className="w-4 h-4 sm:mr-2" />
-                <span className="hidden sm:inline">Send</span>
-              </>
-            )}
+            <SendIcon className="w-5 h-5" />
           </Button>
         </form>
-      </CardFooter>
+      </div>
     </Card>
   );
 };

@@ -2,12 +2,14 @@
 
 import React, { useEffect, useState } from "react";
 import { getChatUsers, getDbUserId } from "@/actions/user.action";
-import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
+import { Card, CardContent } from "./ui/card";
 import Link from "next/link";
 import { Avatar, AvatarImage } from "./ui/avatar";
 import { Skeleton } from "./ui/skeleton";
 import { getUnreadCounts } from "@/actions/message.action";
 import { pusherClient } from "@/lib/pusher";
+import { SearchIcon, UserPlusIcon } from "lucide-react";
+import { Input } from "./ui/input";
 
 type User = {
   id: string;
@@ -23,6 +25,7 @@ interface ChatUsersProps {
 
 const ChatUsers: React.FC<ChatUsersProps> = ({ setChatUser, activeUserId }) => {
   const [users, setUsers] = useState<User[]>([]);
+  const [searchQuery, setSearchQuery] = useState("");
   const [loading, setLoading] = useState<boolean>(true);
   const [unreadCounts, setUnreadCounts] = useState<Record<string, number>>({});
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
@@ -39,7 +42,6 @@ const ChatUsers: React.FC<ChatUsersProps> = ({ setChatUser, activeUserId }) => {
         setCurrentUserId(dbUserId);
         setUsers(chatUsers);
         if (countsRes.success && countsRes.data) {
-          // Initial load: filter out active user's unread counts
           const filteredCounts = { ...countsRes.data };
           if (activeUserId) delete filteredCounts[activeUserId];
           setUnreadCounts(filteredCounts);
@@ -51,7 +53,7 @@ const ChatUsers: React.FC<ChatUsersProps> = ({ setChatUser, activeUserId }) => {
       }
     };
     init();
-  }, [activeUserId]); // Include activeUserId to re-filter if it changes during load
+  }, [activeUserId]);
 
   useEffect(() => {
     if (!currentUserId || !pusherClient) return;
@@ -60,7 +62,6 @@ const ChatUsers: React.FC<ChatUsersProps> = ({ setChatUser, activeUserId }) => {
 
     const handleNewMessage = (data: any) => {
       const { message } = data;
-      // If message is NOT from the active user, increment unread count
       setUnreadCounts((prev) => {
         if (message.senderId === activeUserId) return prev;
         return {
@@ -80,7 +81,6 @@ const ChatUsers: React.FC<ChatUsersProps> = ({ setChatUser, activeUserId }) => {
 
   const handleSelectUser = (user: User) => {
     setChatUser(user);
-    // Clear unread count immediately on selection
     setUnreadCounts((prev) => {
       if (!prev[user.id]) return prev;
       const newCounts = { ...prev };
@@ -89,53 +89,98 @@ const ChatUsers: React.FC<ChatUsersProps> = ({ setChatUser, activeUserId }) => {
     });
   };
 
+  const filteredUsers = users.filter((user) => 
+    user.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    user.username.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
   return (
-    <Card className="h-full flex flex-col min-h-0 shadow-lg">
-      <CardHeader className="shrink-0 border-b bg-muted/20">
-        <CardTitle className="text-lg font-semibold">Friends</CardTitle>
-      </CardHeader>
-      <CardContent className="flex-1 overflow-y-auto p-2 min-h-0 custom-scrollbar">
-        <div className="space-y-4">
+    <Card className="h-full flex flex-col min-h-0 shadow-xl border rounded-3xl bg-background/60 backdrop-blur-md">
+      {/* Header with Search */}
+      <div className="p-6 pb-2 space-y-4">
+        <div className="flex items-center justify-between">
+          <h2 className="text-2xl font-bold tracking-tight">Chats</h2>
+          <button className="p-2 rounded-full bg-muted hover:bg-muted/80 transition-colors">
+            <UserPlusIcon className="w-5 h-5" />
+          </button>
+        </div>
+        <div className="relative group">
+          <SearchIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground group-focus-within:text-blue-500 transition-colors" />
+          <Input 
+            placeholder="Search conversations..." 
+            className="pl-9 bg-muted/40 border-none rounded-2xl h-10 text-sm focus-visible:ring-2 focus-visible:ring-blue-500/50 transition-all"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+          />
+        </div>
+      </div>
+
+      {/* User List */}
+      <CardContent className="flex-1 overflow-y-auto px-3 py-4 min-h-0 custom-scrollbar">
+        <div className="space-y-1">
           {loading ? (
-            Array.from({ length: 4 }).map((_, index) => (
-              <div key={index} className="flex gap-2 items-center">
-                <Skeleton className="w-10 h-10 rounded-full" />
-                <div className="space-y-1">
-                  <Skeleton className="h-3 w-24 rounded" />
-                  <Skeleton className="h-3 w-16 rounded" />
+            Array.from({ length: 6 }).map((_, index) => (
+              <div key={index} className="flex gap-3 items-center p-3">
+                <Skeleton className="w-12 h-12 rounded-2xl" />
+                <div className="space-y-2 flex-1">
+                  <Skeleton className="h-4 w-32 rounded-lg" />
+                  <Skeleton className="h-3 w-20 rounded-lg" />
                 </div>
               </div>
             ))
-          ) : users.length === 0 ? (
-            <p className="text-sm text-muted-foreground">No users found.</p>
+          ) : filteredUsers.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-10 text-center space-y-2 opacity-50">
+              <SearchIcon className="w-8 h-8" />
+              <p className="text-sm font-medium">No conversations found</p>
+            </div>
           ) : (
-            users.map((user) => (
-              <div
-                key={user.id}
-                className={`flex gap-2 items-center justify-between p-2 rounded-xl transition-colors cursor-pointer hover:bg-muted/50 ${
-                  activeUserId === user.id ? "bg-muted" : ""
-                }`}
-                onClick={() => handleSelectUser(user)}
-              >
-                <div className="flex items-center gap-2 overflow-hidden">
-                  <Link href={`/profile/${user.username}`} onClick={(e) => e.stopPropagation()}>
-                    <Avatar className="w-10 h-10 border shadow-sm shrink-0">
-                      <AvatarImage src={user.image ?? "/avatar.png"} />
-                    </Avatar>
-                  </Link>
-                  <div className="text-xs overflow-hidden">
-                    <p className="font-medium truncate">{user.name}</p>
-                    <p className="text-muted-foreground truncate">@{user.username}</p>
+            filteredUsers.map((user) => {
+              const isActive = activeUserId === user.id;
+              const unreadCount = unreadCounts[user.id] || 0;
+
+              return (
+                <div
+                  key={user.id}
+                  className={`
+                    group flex gap-3 items-center p-3 rounded-2xl transition-all duration-200 cursor-pointer relative
+                    ${isActive ? "bg-blue-600/10 dark:bg-blue-500/10" : "hover:bg-muted/60"}
+                  `}
+                  onClick={() => handleSelectUser(user)}
+                >
+                  {/* Active Indicator */}
+                  {isActive && (
+                    <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-8 bg-blue-600 rounded-r-full shadow-[0_0_8px_rgba(37,99,235,0.5)]" />
+                  )}
+
+                  <div className="relative shrink-0">
+                    <Link href={`/profile/${user.username}`} onClick={(e) => e.stopPropagation()}>
+                      <Avatar className={`w-12 h-12 border-2 transition-transform group-hover:scale-105 ${isActive ? "border-blue-500 shadow-sm" : "border-transparent"}`}>
+                        <AvatarImage src={user.image ?? "/avatar.png"} className="object-cover" />
+                      </Avatar>
+                    </Link>
+                    {/* Status Indicator (Mock) */}
+                    <div className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 rounded-full bg-emerald-500 border-2 border-background shadow-sm" />
                   </div>
+
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center justify-between mb-0.5">
+                      <p className={`font-semibold truncate text-sm ${isActive ? "text-blue-600 dark:text-blue-400" : "text-foreground"}`}>
+                        {user.name}
+                      </p>
+                    </div>
+                    <p className="text-xs text-muted-foreground truncate font-medium">
+                      @{user.username}
+                    </p>
+                  </div>
+                  
+                  {unreadCount > 0 && (
+                    <div className="bg-blue-600 text-white text-[10px] font-bold px-2 py-1 rounded-full min-w-[20px] h-5 flex items-center justify-center shadow-lg shadow-blue-600/20 animate-in zoom-in">
+                      {unreadCount > 9 ? "9+" : unreadCount}
+                    </div>
+                  )}
                 </div>
-                
-                {unreadCounts[user.id] > 0 && (
-                  <div className="bg-blue-600 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full min-w-[18px] text-center shadow-sm">
-                    {unreadCounts[user.id] > 9 ? "9+" : unreadCounts[user.id]}
-                  </div>
-                )}
-              </div>
-            ))
+              );
+            })
           )}
         </div>
       </CardContent>
