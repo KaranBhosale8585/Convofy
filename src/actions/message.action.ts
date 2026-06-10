@@ -28,8 +28,9 @@ export async function sendMessage(receiverId: string, content: string): Promise<
       },
     });
 
+    // Notify BOTH sender and receiver channels for instant sync across tabs and accounts
     await safeTrigger(
-      `user-${receiverId}`,
+      [`user-${receiverId}`, `user-${senderId}`],
       "new-message",
       {
         message: {
@@ -43,6 +44,19 @@ export async function sendMessage(receiverId: string, content: string): Promise<
         },
       }
     );
+
+    // Trigger a general chat update for reordering and previewing
+    await safeTrigger(
+        [`user-${receiverId}`, `user-${senderId}`],
+        "chat-update",
+        {
+          senderId: message.senderId,
+          receiverId: message.receiverId,
+          lastMessage: message.content,
+          timestamp: message.createdAt,
+        }
+    );
+
     return { success: true, data: message };
   } catch (error) {
     return handleActionError(error, "Failed to send message");
@@ -93,6 +107,9 @@ export async function markMessagesAsRead(senderId: string): Promise<ActionRespon
         isRead: true,
       },
     });
+
+    // Notify the user themselves to update their own UI (unread counts)
+    await safeTrigger(`user-${userId}`, "unread-update", { senderId });
 
     return { success: true };
   } catch (error) {

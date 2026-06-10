@@ -59,3 +59,12 @@
 - Optimized mobile navigation and layout for better use of screen real estate.
 - Added real-time feedback for message delivery and read status (placeholder logic improved).
 - Verified full compatibility with existing Pusher and Prisma logic.
+
+## Session Update: June 10, 2026 (Part 4)
+- Implemented Pusher Presence channels for accurate real-time online status tracking.
+- Created Pusher authentication route at \/api/pusher/auth\.
+- Enhanced \sendMessage\ action to trigger \chat-update\ events for sidebar reordering and message previews.
+- Refactored \ChatUsers\ sidebar to handle dynamic reordering and live unread count updates.
+- Implemented real-time online/offline indicators in both sidebar and chat header.
+- Removed all incomplete calling features (video/voice icons) from the UI.
+- Verified instant synchronization of messages across multiple browser sessions.

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useMemo } from "react";
 import { getChatUsers, getDbUserId } from "@/actions/user.action";
 import { Card, CardContent } from "./ui/card";
 import Link from "next/link";
@@ -10,12 +10,15 @@ import { getUnreadCounts } from "@/actions/message.action";
 import { pusherClient } from "@/lib/pusher";
 import { SearchIcon, UserPlusIcon } from "lucide-react";
 import { Input } from "./ui/input";
+import { formatDistanceToNow } from "date-fns";
 
 type User = {
   id: string;
   name: string;
   username: string;
   image?: string | null;
+  lastMessage?: string | null;
+  lastMessageAt?: string | null;
 };
 
 interface ChatUsersProps {
@@ -29,6 +32,7 @@ const ChatUsers: React.FC<ChatUsersProps> = ({ setChatUser, activeUserId }) => {
   const [loading, setLoading] = useState<boolean>(true);
   const [unreadCounts, setUnreadCounts] = useState<Record<string, number>>({});
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+  const [onlineUsers, setOnlineUsers] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     const init = async () => {
@@ -58,23 +62,64 @@ const ChatUsers: React.FC<ChatUsersProps> = ({ setChatUser, activeUserId }) => {
   useEffect(() => {
     if (!currentUserId || !pusherClient) return;
 
-    const channel = pusherClient.subscribe(`user-${currentUserId}`);
+    // Presence Channel for online status
+    const presenceChannel = pusherClient.subscribe("presence-online");
 
-    const handleNewMessage = (data: any) => {
-      const { message } = data;
-      setUnreadCounts((prev) => {
-        if (message.senderId === activeUserId) return prev;
-        return {
-          ...prev,
-          [message.senderId]: (prev[message.senderId] || 0) + 1,
-        };
-      });
-    };
+    presenceChannel.bind("pusher:subscription_succeeded", (members: any) => {
+        const online = new Set<string>();
+        members.each((member: any) => online.add(member.id));
+        setOnlineUsers(online);
+    });
 
-    channel.bind("new-message", handleNewMessage);
+    presenceChannel.bind("pusher:member_added", (member: any) => {
+        setOnlineUsers((prev) => new Set(prev).add(member.id));
+    });
+
+    presenceChannel.bind("pusher:member_removed", (member: any) => {
+        setOnlineUsers((prev) => {
+            const next = new Set(prev);
+            next.delete(member.id);
+            return next;
+        });
+    });
+
+    // Private channel for messages and updates
+    const userChannel = pusherClient.subscribe(`user-${currentUserId}`);
+
+    userChannel.bind("chat-update", (data: any) => {
+        const { senderId, receiverId, lastMessage, timestamp } = data;
+        const otherId = senderId === currentUserId ? receiverId : senderId;
+
+        setUsers((prev) => {
+            const next = [...prev];
+            const index = next.findIndex(u => u.id === otherId);
+            if (index !== -1) {
+                const user = { ...next[index], lastMessage, lastMessageAt: timestamp };
+                next.splice(index, 1);
+                next.unshift(user);
+            }
+            return next;
+        });
+
+        // Update unread count if chat is not active
+        if (senderId !== currentUserId && senderId !== activeUserId) {
+            setUnreadCounts((prev) => ({
+                ...prev,
+                [senderId]: (prev[senderId] || 0) + 1,
+            }));
+        }
+    });
+
+    userChannel.bind("unread-update", (data: { senderId: string }) => {
+        setUnreadCounts((prev) => {
+            const next = { ...prev };
+            delete next[data.senderId];
+            return next;
+        });
+    });
 
     return () => {
-      channel.unbind("new-message", handleNewMessage);
+      pusherClient.unsubscribe("presence-online");
       pusherClient.unsubscribe(`user-${currentUserId}`);
     };
   }, [currentUserId, activeUserId]);
@@ -89,13 +134,15 @@ const ChatUsers: React.FC<ChatUsersProps> = ({ setChatUser, activeUserId }) => {
     });
   };
 
-  const filteredUsers = users.filter((user) => 
-    user.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    user.username.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const filteredUsers = useMemo(() => {
+    return users.filter((user) => 
+        user.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        user.username.toLowerCase().includes(searchQuery.toLowerCase())
+      );
+  }, [users, searchQuery]);
 
   return (
-    <Card className="h-full flex flex-col min-h-0 shadow-xl border rounded-3xl bg-background/60 backdrop-blur-md">
+    <Card className="h-full flex flex-col min-h-0 shadow-xl border rounded-3xl bg-background/60 backdrop-blur-md overflow-hidden">
       {/* Header with Search */}
       <div className="p-6 pb-2 space-y-4">
         <div className="flex items-center justify-between">
@@ -137,6 +184,7 @@ const ChatUsers: React.FC<ChatUsersProps> = ({ setChatUser, activeUserId }) => {
             filteredUsers.map((user) => {
               const isActive = activeUserId === user.id;
               const unreadCount = unreadCounts[user.id] || 0;
+              const isOnline = onlineUsers.has(user.id);
 
               return (
                 <div
@@ -158,8 +206,8 @@ const ChatUsers: React.FC<ChatUsersProps> = ({ setChatUser, activeUserId }) => {
                         <AvatarImage src={user.image ?? "/avatar.png"} className="object-cover" />
                       </Avatar>
                     </Link>
-                    {/* Status Indicator (Mock) */}
-                    <div className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 rounded-full bg-emerald-500 border-2 border-background shadow-sm" />
+                    {/* Real Online Status Indicator */}
+                    <div className={`absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 rounded-full border-2 border-background shadow-sm transition-colors duration-500 ${isOnline ? "bg-emerald-500" : "bg-zinc-400 dark:bg-zinc-600"}`} />
                   </div>
 
                   <div className="flex-1 min-w-0">
@@ -167,17 +215,23 @@ const ChatUsers: React.FC<ChatUsersProps> = ({ setChatUser, activeUserId }) => {
                       <p className={`font-semibold truncate text-sm ${isActive ? "text-blue-600 dark:text-blue-400" : "text-foreground"}`}>
                         {user.name}
                       </p>
+                      {user.lastMessageAt && (
+                        <span className="text-[10px] text-muted-foreground whitespace-nowrap">
+                            {formatDistanceToNow(new Date(user.lastMessageAt), { addSuffix: false }).replace('about ', '').replace('less than a minute', 'now')}
+                        </span>
+                      )}
                     </div>
-                    <p className="text-xs text-muted-foreground truncate font-medium">
-                      @{user.username}
-                    </p>
+                    <div className="flex items-center justify-between gap-2">
+                        <p className={`text-xs truncate font-medium ${unreadCount > 0 ? "text-foreground font-bold" : "text-muted-foreground"}`}>
+                            {user.lastMessage || `@${user.username}`}
+                        </p>
+                        {unreadCount > 0 && (
+                            <div className="bg-blue-600 text-white text-[10px] font-bold px-2 py-0.5 rounded-full min-w-[20px] h-5 flex items-center justify-center shadow-lg shadow-blue-600/20 animate-in zoom-in shrink-0">
+                            {unreadCount > 9 ? "9+" : unreadCount}
+                            </div>
+                        )}
+                    </div>
                   </div>
-                  
-                  {unreadCount > 0 && (
-                    <div className="bg-blue-600 text-white text-[10px] font-bold px-2 py-1 rounded-full min-w-[20px] h-5 flex items-center justify-center shadow-lg shadow-blue-600/20 animate-in zoom-in">
-                      {unreadCount > 9 ? "9+" : unreadCount}
-                    </div>
-                  )}
                 </div>
               );
             })

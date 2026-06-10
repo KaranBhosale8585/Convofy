@@ -1,10 +1,11 @@
 "use client";
 
 import Link from "next/link";
-import React from "react";
-import { ChevronLeftIcon, InfoIcon, MoreVerticalIcon, PhoneIcon, VideoIcon } from "lucide-react";
+import React, { useEffect, useState } from "react";
+import { ChevronLeftIcon, InfoIcon, MoreVerticalIcon } from "lucide-react";
 import Image from "next/image";
 import { Button } from "./ui/button";
+import { pusherClient } from "@/lib/pusher";
 
 interface ChatHeaderProps {
   receiver: {
@@ -22,6 +23,31 @@ const ChatHeader: React.FC<ChatHeaderProps> = ({
   setChatUser,
   setShowChatUsersMobile,
 }) => {
+  const [isOnline, setIsOnline] = useState(false);
+
+  useEffect(() => {
+    if (!pusherClient) return;
+
+    const channel = pusherClient.subscribe("presence-online");
+
+    const updateStatus = () => {
+        const members = (channel as any).members;
+        if (members && members.get(receiver.id)) {
+            setIsOnline(true);
+        } else {
+            setIsOnline(false);
+        }
+    };
+
+    channel.bind("pusher:subscription_succeeded", updateStatus);
+    channel.bind("pusher:member_added", updateStatus);
+    channel.bind("pusher:member_removed", updateStatus);
+
+    return () => {
+        pusherClient.unsubscribe("presence-online");
+    };
+  }, [receiver.id]);
+
   const handleBack = () => {
     setChatUser(null);
     setShowChatUsersMobile(true);
@@ -52,33 +78,27 @@ const ChatHeader: React.FC<ChatHeaderProps> = ({
               fill
               className="rounded-2xl object-cover border-2 border-background shadow-sm transition-transform group-hover:scale-105"
             />
-            <div className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 rounded-full bg-emerald-500 border-2 border-background" />
+            <div className={`absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 rounded-full border-2 border-background transition-colors duration-500 ${isOnline ? "bg-emerald-500" : "bg-zinc-400 dark:bg-zinc-600"}`} />
           </div>
           <div className="min-w-0">
             <h2 className="text-sm sm:text-base font-bold text-foreground truncate group-hover:text-blue-500 transition-colors">
               {receiver.name}
             </h2>
             <div className="flex items-center gap-1.5">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+              <span className={`w-1.5 h-1.5 rounded-full transition-colors duration-500 ${isOnline ? "bg-emerald-500 animate-pulse" : "bg-zinc-400 dark:bg-zinc-600"}`} />
               <p className="text-[10px] sm:text-xs text-muted-foreground font-medium truncate">
-                Online
+                {isOnline ? "Online" : "Offline"}
               </p>
             </div>
           </div>
         </Link>
       </div>
 
-      <div className="flex items-center gap-1 sm:gap-2">
-        <Button variant="ghost" size="icon" className="hidden sm:flex text-muted-foreground hover:text-blue-500 hover:bg-blue-50/10 rounded-full">
-          <PhoneIcon className="w-5 h-5" />
-        </Button>
-        <Button variant="ghost" size="icon" className="hidden sm:flex text-muted-foreground hover:text-blue-500 hover:bg-blue-50/10 rounded-full">
-          <VideoIcon className="w-5 h-5" />
-        </Button>
-        <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-blue-500 hover:bg-blue-50/10 rounded-full">
+      <div className="flex items-center gap-1 sm:gap-2 text-muted-foreground">
+        <Button variant="ghost" size="icon" className="hover:text-blue-500 hover:bg-blue-50/10 rounded-full">
           <InfoIcon className="w-5 h-5" />
         </Button>
-        <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-blue-500 hover:bg-blue-50/10 rounded-full">
+        <Button variant="ghost" size="icon" className="hover:text-blue-500 hover:bg-blue-50/10 rounded-full">
           <MoreVerticalIcon className="w-5 h-5" />
         </Button>
       </div>

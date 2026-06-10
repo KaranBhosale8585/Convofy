@@ -19,10 +19,12 @@ export const pusherServer = hasPusherServerKeys
 export const pusherClient = hasPusherClientKeys
   ? new Pusher(env.NEXT_PUBLIC_PUSHER_KEY, {
       cluster: env.NEXT_PUBLIC_PUSHER_CLUSTER,
+      authEndpoint: "/api/pusher/auth",
+      authTransport: "ajax",
     })
   : null;
 
-export async function safeTrigger(channel: string, event: string, data: any) {
+export async function safeTrigger(channel: string | string[], event: string, data: any) {
   if (!pusherServer) {
     console.warn(`Pusher server not initialized. Skipping trigger on channel ${channel}.`);
     return;
@@ -34,4 +36,3 @@ export async function safeTrigger(channel: string, event: string, data: any) {
     console.error(`Pusher trigger failed on channel ${channel}:`, error);
   }
 }
- 
