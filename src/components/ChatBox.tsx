@@ -95,7 +95,9 @@ const MsgBox: React.FC<MsgBoxProps> = ({
       ) {
         setMessages((prev) => {
             // Avoid duplicates
-            if (prev.some(m => m.id === message.id)) return prev;
+            if (prev.some(m => m.id === message.id)) {
+                return prev;
+            }
             return [...prev, message];
         });
         
@@ -105,13 +107,20 @@ const MsgBox: React.FC<MsgBoxProps> = ({
       }
     };
 
+    const handleMessagesRead = (data: { receiverId: string }) => {
+        if (data.receiverId === receiver.id) {
+            setMessages((prev) => 
+                prev.map(m => m.receiverId === receiver.id && !m.isRead ? { ...m, isRead: true } : m)
+            );
+        }
+    };
+
     channel.bind("new-message", handleNewMessage);
+    channel.bind("messages-read", handleMessagesRead);
 
     return () => {
       channel.unbind("new-message", handleNewMessage);
-      // DO NOT unsubscribe from the private-user channel here, 
-      // as it's shared with other components. 
-      // Just unbind the listener.
+      channel.unbind("messages-read", handleMessagesRead);
     };
   }, [receiver.id, currentUserId]);
 
@@ -148,7 +157,16 @@ const MsgBox: React.FC<MsgBoxProps> = ({
         return toast.error(res.error || "Send failed");
       }
       // Replace temp message with actual data from server
-      setMessages((prev) => prev.map(m => m.id === tempId ? res.data : m));
+      // BUT only if the real message isn't already there (from Pusher)
+      setMessages((prev) => {
+          const exists = prev.some(m => m.id === res.data.id);
+          if (exists) {
+              // If real message exists, just remove the temp one
+              return prev.filter(m => m.id !== tempId);
+          }
+          // Otherwise replace temp with real
+          return prev.map(m => m.id === tempId ? res.data : m);
+      });
     } catch {
       setMessages((prev) => prev.filter(m => m.id !== tempId));
       toast.error("Message send failed");

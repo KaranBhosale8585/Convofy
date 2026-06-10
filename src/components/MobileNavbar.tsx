@@ -5,7 +5,6 @@ import {
   HomeIcon,
   LogOutIcon,
   MenuIcon,
-  MessagesSquare,
   MoonIcon,
   SunIcon,
   UserIcon,
@@ -23,6 +22,7 @@ import { useAuth, SignInButton, SignOutButton, useUser } from "@clerk/nextjs";
 import { useTheme } from "next-themes";
 import Link from "next/link";
 import NotificationIcon from "./NotificationIcon";
+import MessageIcon from "./MessageIcon";
 
 function MobileNavbar({ dbUserId }: { dbUserId: string | null }) {
   const [showMobileMenu, setShowMobileMenu] = useState(false);
@@ -73,7 +73,7 @@ function MobileNavbar({ dbUserId }: { dbUserId: string | null }) {
                   asChild
                 >
                   <Link href="/messages">
-                    <MessagesSquare className="w-4 h-4" />
+                    <MessageIcon dbUserId={dbUserId} />
                     Chat
                   </Link>
                 </Button>

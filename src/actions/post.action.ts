@@ -167,7 +167,7 @@ export async function toggleLike(postId: string): Promise<ActionResponse> {
       });
 
       if (notification) {
-        await safeTrigger(`user-${post.authorId}`, "new-notification", notification);
+        await safeTrigger(`private-user-${post.authorId}`, "new-notification", notification);
       }
     }
 
@@ -245,7 +245,7 @@ export async function createComment(postId: string, content: string): Promise<Ac
     });
 
     if (notification) {
-      await safeTrigger(`user-${post.authorId}`, "new-notification", notification);
+      await safeTrigger(`private-user-${post.authorId}`, "new-notification", notification);
     }
 
     revalidatePath(`/`);

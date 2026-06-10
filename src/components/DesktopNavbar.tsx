@@ -1,10 +1,11 @@
-import { BellIcon, HomeIcon, MessagesSquare, UserIcon } from "lucide-react";
+import { BellIcon, HomeIcon, UserIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { SignInButton, UserButton } from "@clerk/nextjs";
 import ModeToggle from "./ModeToggle";
 import { currentUser } from "@clerk/nextjs/server";
 import NotificationIcon from "./NotificationIcon";
+import MessageIcon from "./MessageIcon";
 
 async function DesktopNavbar({ dbUserId }: { dbUserId: string | null }) {
   const user = await currentUser();
@@ -24,7 +25,7 @@ async function DesktopNavbar({ dbUserId }: { dbUserId: string | null }) {
         <>
           <Button variant="ghost" className="flex items-center gap-2" asChild>
             <Link href="/messages">
-              <MessagesSquare className="w-4 h-4" />
+              <MessageIcon dbUserId={dbUserId} />
               <span className="hidden lg:inline">Chat</span>
             </Link>
           </Button>

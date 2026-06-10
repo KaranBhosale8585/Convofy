@@ -76,7 +76,7 @@ function NotificationsPage() {
   useEffect(() => {
     if (!dbUserId || !pusherClient) return;
 
-    const channel = pusherClient.subscribe(`user-${dbUserId}`);
+    const channel = pusherClient.subscribe(`private-user-${dbUserId}`);
 
     channel.bind("new-notification", (newNotification: Notification) => {
       setNotifications((prev) => [newNotification, ...prev]);
@@ -86,7 +86,9 @@ function NotificationsPage() {
     });
 
     return () => {
-      pusherClient.unsubscribe(`user-${dbUserId}`);
+      if (pusherClient) {
+        channel.unbind("new-notification");
+      }
     };
   }, [dbUserId]);
 

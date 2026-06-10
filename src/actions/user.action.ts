@@ -228,7 +228,7 @@ export async function toggleFollow(targetUserId: string): Promise<ActionResponse
         return [newFollow, newNotification];
       });
 
-      await safeTrigger(`user-${targetUserId}`, "new-notification", notification);
+      await safeTrigger(`private-user-${targetUserId}`, "new-notification", notification);
       revalidatePath("/");
       return { success: true, data: { followed: true } };
     }

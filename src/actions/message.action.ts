@@ -47,6 +47,7 @@ export async function sendMessage(receiverId: string, content: string): Promise<
     );
 
     // Trigger a general chat update for reordering and previewing
+    // Include basic sender info so receiver can add to sidebar if missing
     await safeTrigger(
         [`private-user-${receiverId}`, `private-user-${senderId}`],
         "chat-update",
@@ -55,6 +56,12 @@ export async function sendMessage(receiverId: string, content: string): Promise<
           receiverId: message.receiverId,
           lastMessage: message.content,
           timestamp: message.createdAt,
+          userData: {
+            id: message.sender.id,
+            name: message.sender.name,
+            username: message.sender.username,
+            image: message.sender.image,
+          }
         }
     );
 
@@ -111,6 +118,9 @@ export async function markMessagesAsRead(senderId: string): Promise<ActionRespon
 
     // Notify the user themselves to update their own UI (unread counts)
     await safeTrigger(`private-user-${userId}`, "unread-update", { senderId });
+    
+    // Notify the sender that their messages were read (for blue ticks)
+    await safeTrigger(`private-user-${senderId}`, "messages-read", { receiverId: userId });
 
     return { success: true };
   } catch (error) {

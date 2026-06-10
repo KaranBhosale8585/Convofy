@@ -36,7 +36,9 @@ const NotificationIcon = ({ dbUserId }: NotificationIconProps) => {
     });
 
     return () => {
-      pusherClient.unsubscribe(`private-user-${dbUserId}`);
+      if (pusherClient) {
+        channel.unbind("new-notification");
+      }
     };
   }, [dbUserId, pathname]);
 

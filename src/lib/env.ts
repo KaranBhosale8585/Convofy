@@ -1,14 +1,14 @@
 import { z } from "zod";
 
 const envSchema = z.object({
-  DB_URL: z.string().url().optional().or(z.string().url()),
-  CLERK_SECRET_KEY: z.string().min(1),
+  DB_URL: z.string().url().optional().or(z.string().url().optional()),
+  CLERK_SECRET_KEY: z.string().min(1).optional(),
   NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: z.string().min(1),
   NEXT_PUBLIC_CLERK_SIGN_IN_URL: z.string().min(1).optional().default("/sign-in"),
   NEXT_PUBLIC_CLERK_SIGN_UP_URL: z.string().min(1).optional().default("/sign-up"),
   NEXT_PUBLIC_CLERK_AFTER_SIGN_IN_URL: z.string().min(1).optional().default("/"),
   NEXT_PUBLIC_CLERK_AFTER_SIGN_UP_URL: z.string().min(1).optional().default("/"),
-  PUSHER_SECRET: z.string().min(1),
+  PUSHER_SECRET: z.string().min(1).optional(),
   NEXT_PUBLIC_PUSHER_APP_ID: z.string().min(1),
   NEXT_PUBLIC_PUSHER_KEY: z.string().min(1),
   NEXT_PUBLIC_PUSHER_CLUSTER: z.string().min(1),

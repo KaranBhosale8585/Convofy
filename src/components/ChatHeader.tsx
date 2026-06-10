@@ -39,12 +39,21 @@ const ChatHeader: React.FC<ChatHeaderProps> = ({
         }
     };
 
+    // If already subscribed (shared channel), update immediately
+    if ((channel as any).subscribed) {
+        updateStatus();
+    }
+
     channel.bind("pusher:subscription_succeeded", updateStatus);
     channel.bind("pusher:member_added", updateStatus);
     channel.bind("pusher:member_removed", updateStatus);
 
     return () => {
-        pusherClient.unsubscribe("presence-online");
+      if (pusherClient) {
+        channel.unbind("pusher:subscription_succeeded", updateStatus);
+        channel.unbind("pusher:member_added", updateStatus);
+        channel.unbind("pusher:member_removed", updateStatus);
+      }
     };
   }, [receiver.id]);
 

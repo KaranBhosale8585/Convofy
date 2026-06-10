@@ -38,7 +38,9 @@ const NotificationListener = ({ userId }: NotificationListenerProps) => {
     });
 
     return () => {
-      pusherClient.unsubscribe(`private-user-${userId}`);
+      if (pusherClient) {
+        channel.unbind("new-notification");
+      }
     };
   }, [userId]);
 

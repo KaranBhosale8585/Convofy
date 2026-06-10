@@ -77,6 +77,13 @@ const ChatUsers: React.FC<ChatUsersProps> = ({ setChatUser, activeUserId }) => {
         setOnlineUsers(online);
     });
 
+    // If already subscribed (shared channel), initialize immediately
+    if ((presenceChannel as any).subscribed) {
+        const online = new Set<string>();
+        (presenceChannel as any).members.each((member: any) => online.add(member.id));
+        setOnlineUsers(online);
+    }
+
     presenceChannel.bind("pusher:member_added", (member: any) => {
         setOnlineUsers((prev) => new Set(prev).add(member.id));
     });
@@ -93,16 +100,31 @@ const ChatUsers: React.FC<ChatUsersProps> = ({ setChatUser, activeUserId }) => {
     const userChannel = pusherClient.subscribe(`private-user-${currentUserId}`);
 
     userChannel.bind("chat-update", (data: any) => {
-        const { senderId, receiverId, lastMessage, timestamp } = data;
+        const { senderId, receiverId, lastMessage, timestamp, userData } = data;
         const otherId = senderId === currentUserId ? receiverId : senderId;
 
         setUsers((prev) => {
             const next = [...prev];
             const index = next.findIndex(u => u.id === otherId);
+            
             if (index !== -1) {
+                // Update existing user
                 const user = { ...next[index], lastMessage, lastMessageAt: timestamp };
                 next.splice(index, 1);
                 next.unshift(user);
+            } else if (userData) {
+                // Add new user if they sent us a message (userData is provided)
+                // OR if we sent them a message and we need their basic info
+                // Note: userData is usually only for the recipient to see the sender
+                // If current user is sender, we should ideally already have receiver info from the UI interaction
+                if (senderId !== currentUserId) {
+                    const newUser = {
+                        ...userData,
+                        lastMessage,
+                        lastMessageAt: timestamp
+                    };
+                    next.unshift(newUser);
+                }
             }
             return next;
         });
@@ -124,9 +146,22 @@ const ChatUsers: React.FC<ChatUsersProps> = ({ setChatUser, activeUserId }) => {
         });
     });
 
+    userChannel.bind("messages-read", (data: { receiverId: string }) => {
+        // If the other person read our messages, we don't need to do anything in sidebar
+        // But if WE are the ones who read messages (triggered from another tab)
+        // the unread-update event already handles it.
+    });
+
     return () => {
-      pusherClient.unsubscribe("presence-online");
-      pusherClient.unsubscribe(`private-user-${currentUserId}`);
+      if (pusherClient) {
+        presenceChannel.unbind("pusher:subscription_succeeded");
+        presenceChannel.unbind("pusher:member_added");
+        presenceChannel.unbind("pusher:member_removed");
+        userChannel.unbind("chat-update");
+        userChannel.unbind("unread-update");
+        // We do NOT unsubscribe from shared channels here, as other components 
+        // (ChatBox, Notifications) are sharing this subscription.
+      }
     };
   }, [currentUserId]); // Only resubscribe if currentUserId changes
 
