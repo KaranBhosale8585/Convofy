@@ -6,6 +6,8 @@ import SuggestedForU from "@/components/SuggestedForU";
 import { currentUser } from "@clerk/nextjs/server";
 import React from "react";
 
+export const dynamic = "force-dynamic";
+
 const page = async () => {
   const user = await currentUser();
   const posts = await getPosts();

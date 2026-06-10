@@ -27,6 +27,8 @@ export const metadata: Metadata = {
     "Convofy is a modern chat application that lets you connect, chat, and share seamlessly in real time.",
 };
 
+export const dynamic = "force-dynamic";
+
 export default async function RootLayout({
   children,
 }: {

@@ -53,7 +53,7 @@ const ChatUsers: React.FC<ChatUsersProps> = ({ setChatUser, activeUserId }) => {
         setUsers(chatUsers);
         if (countsRes.success && countsRes.data) {
           const filteredCounts = { ...countsRes.data };
-          if (activeUserId) delete filteredCounts[activeUserId];
+          if (activeUserIdRef.current) delete filteredCounts[activeUserIdRef.current];
           setUnreadCounts(filteredCounts);
         }
       } catch (error) {
@@ -81,7 +81,7 @@ const ChatUsers: React.FC<ChatUsersProps> = ({ setChatUser, activeUserId }) => {
     if ((presenceChannel as any).subscribed) {
         const online = new Set<string>();
         (presenceChannel as any).members.each((member: any) => online.add(member.id));
-        setOnlineUsers(online);
+        Promise.resolve().then(() => setOnlineUsers(online));
     }
 
     presenceChannel.bind("pusher:member_added", (member: any) => {
