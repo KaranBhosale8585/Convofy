@@ -33,7 +33,7 @@ const _env = envSchema.safeParse({
 });
 
 if (!_env.success) {
-  console.error("⚠️ Environment variable validation failed:", _env.error.format());
+  console.error("⚠️ Environment variable validation failed:", _env.error.flatten().fieldErrors);
   if (process.env.NODE_ENV === "production") {
     throw new Error("Invalid environment variables in production");
   }
